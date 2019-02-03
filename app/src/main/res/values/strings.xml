@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">tomtommapexample</string>
+    <string name ="geocode_no_results">No geocoder results. Choose different location and try again</string>
+    <string name = "api_response_error">API response error: \'%1$s\'.</string>
+    <string name="poi_name_key">poiName</string>
+    <string name="address_key">address</string>
+    <string name="poisearch_hint">Kind of place to add to your route</string>
+    <string name="no_search_results">No search results for \'%1$s\'. Please try another search term</string>
+    <string name="add_to_my_route">Add to my route</string>
+</resources>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.tomtom.online.sdk.map.MapFragment"
+
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/size_none"
+        app:layout_constraintBottom_toTopOf="@+id/layout_edittext"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/layout_edittext"
+        android:layout_width="@dimen/size_none"
+        android:layout_height="@dimen/layout_height_xlarge"
+        android:background="@color/white_fully_opaque"
+        android:paddingBottom="@dimen/spacing_small"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <EditText
+            android:id="@+id/edittext_main_poisearch"
+            android:layout_width="@dimen/size_none"
+            android:layout_height="@dimen/size_none"
+            android:layout_marginStart="@dimen/spacing_small"
+
+            android:background="@android:color/transparent"
+            android:hint="@string/poisearch_hint"
+            android:imeOptions="actionSearch"
+            android:textSize="@dimen/text_size_normal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_main_poisearch"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:inputType="text"/>
+        <ImageButton
+            android:id="@+id/btn_main_poisearch"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/size_none"
+            android:layout_marginEnd="@dimen/spacing_small"
+            android:layout_marginTop="@dimen/spacing_xtiny"
+            android:adjustViewBounds="true"
+            android:background="@android:color/transparent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@android:drawable/ic_menu_search" />
+
+    </android.support.constraint.ConstraintLayout>
+</android.support.constraint.ConstraintLayout>
