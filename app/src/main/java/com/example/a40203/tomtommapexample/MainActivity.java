@@ -1,7 +1,7 @@
 package com.example.a40203.tomtommapexample;
 
-import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -12,9 +12,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.common.api.Api;
 import com.google.common.base.Optional;
+import com.tomtom.online.sdk.common.location.BoundingBox;
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.map.BaseMarkerBalloon;
 import com.tomtom.online.sdk.map.Icon;
@@ -24,12 +23,17 @@ import com.tomtom.online.sdk.map.MarkerBuilder;
 import com.tomtom.online.sdk.map.OnMapReadyCallback;
 import com.tomtom.online.sdk.map.Route;
 import com.tomtom.online.sdk.map.RouteBuilder;
+import com.tomtom.online.sdk.map.RouteStyle;
+import com.tomtom.online.sdk.map.RouteStyleBuilder;
 import com.tomtom.online.sdk.map.SingleLayoutBalloonViewAdapter;
 import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.map.TomtomMapCallback;
 import com.tomtom.online.sdk.routing.OnlineRoutingApi;
 import com.tomtom.online.sdk.routing.RoutingApi;
+import com.tomtom.online.sdk.routing.data.AlternativeType;
 import com.tomtom.online.sdk.routing.data.FullRoute;
+import com.tomtom.online.sdk.routing.data.InstructionsType;
+import com.tomtom.online.sdk.routing.data.Report;
 import com.tomtom.online.sdk.routing.data.RouteQuery;
 import com.tomtom.online.sdk.routing.data.RouteQueryBuilder;
 import com.tomtom.online.sdk.routing.data.RouteResult;
@@ -43,10 +47,8 @@ import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchQu
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchResponse;
 import com.tomtom.online.sdk.traffic.OnlineTrafficApi;
 import com.tomtom.online.sdk.traffic.TrafficApi;
-
 import java.util.List;
 import java.util.Locale;
-
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -64,7 +66,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Icon departureIcon;
     private Icon destinationIcon;
     private ImageButton btnSearch;
+    private ImageButton btnTrafficList;
     private EditText editTextPois;
+    private View view;
+    private BoundingBox bbox;
     //text to speech
     TextToSpeech mTTS = null;
     private final int ACT_CHECK_TTS_DATA = 1000;
@@ -128,12 +133,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         departureIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_departure);
         destinationIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_destination);
         btnSearch = findViewById(R.id.btn_main_poisearch);
+        btnTrafficList = findViewById(R.id.btn_traffic_list);
         editTextPois = findViewById(R.id.edittext_main_poisearch);
     }
 
     private void setupUIViewListeners() {
         View.OnClickListener searchButtonListener = getSearchButtonListener();
         btnSearch.setOnClickListener(searchButtonListener);
+        //View.OnClickListener trafficButtonListener = getTrafficButtonListener();
+        //btnTrafficList.setOnClickListener(trafficButtonListener);
     }
 
     private void clearMap(){
@@ -207,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void drawRouteWithWayPoints(LatLng start, LatLng stop, LatLng[] wayPoints){
-        RouteQuery routeQuery = createRouteQuery(start, stop, wayPoints);
+        RouteQuery routeQuery = createRouteQuery(start, stop, wayPoints).withMaxAlternatives(1).withReport(Report.EFFECTIVE_SETTINGS).withInstructionsType(InstructionsType.TEXT);
         routingApi.planRoute(routeQuery)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -218,15 +226,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         tomtomMap.displayRoutesOverview();
                     }
 
-                    private void displayRoutes(List<FullRoute> routes){
-                        for(FullRoute fullRoute: routes){
-                            route = tomtomMap.addRoute(new RouteBuilder(
-                                    fullRoute.getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon).isActive(true));
-                        }
-                    }
 
+
+                    private void displayRoutes(List<FullRoute> routes) {
+                        for (int i = 0; i<routes.size();++i) {
+                            RouteStyle routestyle = RouteStyleBuilder.create()
+                                    .withWidth(2.0)
+                                    .withFillColor(Color.rgb(i*255,i*255,i*255))
+                                    .withOutlineColor(Color.GRAY).build();
+                            route = tomtomMap.addRoute(new RouteBuilder(
+                                    routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+                        }
+
+                    }
                     @Override
-                    public void onError(Throwable e){
+                    public void onError(Throwable e) {
                         handleApiError(e);
                         clearMap();
                     }
@@ -322,6 +336,60 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
     }
 
+   /* @NonNull
+    private View.OnClickListener getTrafficButtonListener(){
+        return new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v){
+                LatLng latLng1 = new LatLng((256/2*Math.PI)*2*(departurePosition.getLatitude()+Math.PI),
+                        ((256/2*Math.PI)*2*(Math.PI - Math.log(Math.tan(Math.PI/4+departurePosition.getLongitude()/2)))));
+                LatLng latLng2 = new LatLng((256/2*Math.PI)*2*(destinationPosition.getLatitude()+Math.PI),
+                        ((256/2*Math.PI)*2*(Math.PI - Math.log(Math.tan(Math.PI/4+destinationPosition.getLongitude()/2)))));
+                bbox = new BoundingBox(latLng1, latLng2);
+                handleTrafficClick(v);
+            }
+
+            private void handleTrafficClick(View v){
+                IncidentDetailsQueryBuilder query = new IncidentDetailsQueryBuilder(IncidentStyle.S1, bbox, 4, "-1")
+                        .withExpandCluster(true).build();
+                trafficApi.findIncidentDetails(query, incidentDetailsResultListener);
+                v.setSelected(true);
+            }
+        };
+    }
+
+    private IncidentDetailsResultListener incidentDetailsResultListener = new IncidentDetailsResultListener() {
+        @Override
+        public void onTrafficIncidentDetailsResult(IncidentDetailsResponse result) {
+
+            final List<TrafficIncident> items = new ArrayList<>();
+
+            TrafficIncidentVisitor visitor = new TrafficIncidentVisitor() {
+                @Override
+                public void visit(TrafficIncidentCluster cluster) {
+                    proceedWithCluster(cluster, items);
+                }
+
+                @Override
+                public void visit(TrafficIncident incident) {
+                    proceedWithIncident(incident, items);
+                }
+            };
+
+            for (BaseTrafficIncident incident : result.getIncidents()) {
+                incident.accept(visitor);
+            }
+
+            view.updateTrafficIncidentsList(items);
+        }
+
+        @Override
+        public void onTrafficIncidentDetailsError(Throwable error) {
+            Toast.makeText(view.getContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    };
+*/
     private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
         return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_ballon){
             @Override

@@ -53,6 +53,18 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@android:drawable/ic_menu_search" />
+        <ImageButton
+            android:id="@+id/btn_traffic_list"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/size_none"
+            android:layout_marginEnd="@dimen/spacing_small"
+            android:layout_marginTop="@dimen/spacing_xtiny"
+            android:adjustViewBounds="true"
+            android:background="@android:color/transparent"
+            app:layout_constraintEnd_toStartOf="@id/btn_main_poisearch"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@android:drawable/ic_menu_info_details" />
+
 
     </android.support.constraint.ConstraintLayout>
 </android.support.constraint.ConstraintLayout>
