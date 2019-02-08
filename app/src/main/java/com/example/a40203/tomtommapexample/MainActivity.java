@@ -2,6 +2,7 @@ package com.example.a40203.tomtommapexample;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.location.Location;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -30,7 +31,6 @@ import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.map.TomtomMapCallback;
 import com.tomtom.online.sdk.routing.OnlineRoutingApi;
 import com.tomtom.online.sdk.routing.RoutingApi;
-import com.tomtom.online.sdk.routing.data.AlternativeType;
 import com.tomtom.online.sdk.routing.data.FullRoute;
 import com.tomtom.online.sdk.routing.data.InstructionsType;
 import com.tomtom.online.sdk.routing.data.Report;
@@ -52,6 +52,8 @@ import java.util.Locale;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
+
+import static java.lang.String.valueOf;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, TomtomMapCallback.OnMapLongClickListener, TextToSpeech.OnInitListener {
 
@@ -77,6 +79,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int permissionCount = 0;
     private String mAudioFilename = "";
     private final String mUtteranceID = "totts";
+    //colours
+    private int[] routeColours;
+    //travelTime
+    private int[] travelTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         initTomTomServices();
         initUIViews();
         setupUIViewListeners();
+        initColours();
 
         // Check to see if we have TTS voice data
         Intent ttsIntent = new Intent();
@@ -99,6 +106,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.tomtomMap.addOnMapLongClickListener(this);
         this.tomtomMap.getMarkerSettings().setMarkersClustering(true);
         this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
+        this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
+        this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
     }
 
     @Override
@@ -127,6 +136,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         searchApi = OnlineSearchApi.create(this);
         routingApi = OnlineRoutingApi.create(this);
         trafficApi = OnlineTrafficApi.create(this);
+    }
+
+    private void initColours(){
+        routeColours = new int[3];
+        routeColours[0] = Color.rgb(255,237,160);
+        routeColours[1] = Color.rgb(254,178, 76);
+        routeColours[2] = Color.rgb(240, 59, 32);
     }
 
     private void initUIViews() {
@@ -224,20 +240,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onSuccess(RouteResult routeResult){
                         displayRoutes(routeResult.getRoutes());
                         tomtomMap.displayRoutesOverview();
+                        createAndDisplayCustomTag1(routeResult);
+                        createAndDisplayCustomTag2(routeResult);
                     }
 
 
 
                     private void displayRoutes(List<FullRoute> routes) {
+                        travelTime = new int[2];
                         for (int i = 0; i<routes.size();++i) {
                             RouteStyle routestyle = RouteStyleBuilder.create()
                                     .withWidth(2.0)
-                                    .withFillColor(Color.rgb(i*255,i*255,i*255))
+                                    .withFillColor(routeColours[i])
                                     .withOutlineColor(Color.GRAY).build();
                             route = tomtomMap.addRoute(new RouteBuilder(
                                     routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+                            travelTime[i] = routes.get(i).getSummary().getTravelTimeInSeconds();
                         }
 
+                    }
+
+                    private void createAndDisplayCustomTag1(RouteResult result){
+                        Location tag1 = result.getRoutes().get(0).getLegs()[result.getRoutes().get(0).getLegs().length/2].getPoints()[0].toLocation();
+
+                        String tag1Name = String.valueOf(travelTime[0]);
+
+                        BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
+                        markerBalloonData.addProperty(getString(R.string.tag1_name), tag1Name);
+
+                        MarkerBuilder markerBuilder = new MarkerBuilder(new LatLng(tag1.getLatitude(), tag1.getLongitude()))
+                                .markerBalloon(markerBalloonData)
+                                .shouldCluster(false);
+                        tomtomMap.addMarker(markerBuilder);
+                    }
+
+                    private void createAndDisplayCustomTag2(RouteResult result){
+                        //change this
+                        Location tag2 = result.getRoutes().get(1).getLegs()[0].getPoints()[0].toLocation();
+
+                        String tag2Name = String.valueOf(travelTime[1]);
+
+                        BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
+                        markerBalloonData.addProperty(getString(R.string.tag2_name), tag2Name);
+
+                        MarkerBuilder markerBuilder = new MarkerBuilder(new LatLng(tag2.getLatitude(), tag2.getLongitude()))
+                                .markerBalloon(markerBalloonData)
+                                .shouldCluster(false);
+                        tomtomMap.addMarker(markerBuilder);
                     }
                     @Override
                     public void onError(Throwable e) {
@@ -391,7 +440,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 */
     private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
-        return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_ballon){
+        return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
             @Override
             public void onBindView(View view, final Marker marker, BaseMarkerBalloon baseMarkerBalloon){
                 Button btnAddWayPoint = view.findViewById(R.id.btn_balloon_waypoint);
@@ -417,6 +466,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
     }
 
+    private SingleLayoutBalloonViewAdapter createCustomRoute1Balloon() {
+        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
+            @Override
+            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
+                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
+                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag1_name)));
+            }
+        };
+    }
+    private SingleLayoutBalloonViewAdapter createCustomRoute2Balloon() {
+        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
+            @Override
+            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
+                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
+                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag2_name)));
+            }
+        };
+    }
 
     //text to speech
     public void onInit(int status) {

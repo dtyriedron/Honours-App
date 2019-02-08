@@ -7,4 +7,6 @@
     <string name="poisearch_hint">Kind of place to add to your route</string>
     <string name="no_search_results">No search results for \'%1$s\'. Please try another search term</string>
     <string name="add_to_my_route">Add to my route</string>
+    <string name="tag1_name">tag1Name</string>
+    <string name="tag2_name">tag2Name</string>
 </resources>
