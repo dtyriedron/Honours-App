@@ -122,6 +122,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
         this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
     }
+    public void clearMap(){
+        tomtomMap.clear();
+        departurePosition = null;
+        destinationPosition = null;
+        route = null;
+    }
 
     @Override
     public void onMapLongClick(@NonNull LatLng latLng) {
@@ -151,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         trafficApi = OnlineTrafficApi.create(this);
     }
 
+
 //    private void initColours(){
 //        routeColours = new int[4];
 //        routeColours[0] = Color.rgb(255,237,160);
@@ -174,12 +181,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //btnTrafficList.setOnClickListener(trafficButtonListener);
     }
 
-    private void clearMap(){
-        tomtomMap.clear();
-        departurePosition = null;
-        destinationPosition = null;
-        route = null;
-    }
+
 
     private void handleLongClick(@NonNull LatLng latLng){
         searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
@@ -283,54 +285,107 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             //add dijkstra
 
                             //travelTime[i] = routes.get(i).getSummary().getTravelTimeInSeconds();
-                            Log.d("cheese", "dist: "+ String.valueOf(routes.get(i).getSummary().getDeviationDistance()));
+                            Log.w("cheese", "dist: "+ String.valueOf(routes.get(i).getSummary().getDeviationDistance()));
                         }
-                        Log.d("cheese", "number of points: " + unsortedtrack.size());
 
-                        LatLng temp;
+//                        Log.w("cheese", "number of points: " + unsortedtrack.size());
+//                        for (int i =0; i< unsortedtrack.size()/4; ++i){
+//                            Log.w("cheese", String.valueOf(unsortedtrack.get(i)));
+//                        }
+//                        //mindistToFirstPoint(unsortedtrack, departurePosition);
+//                        Log.w("cheese", "next lot:");
+//                        for (int i =0; i< unsortedtrack.size()/4; ++i){
+//                            Log.w("cheese2", String.valueOf(mindistToFirstPoint(unsortedtrack, unsortedtrack.get(unsortedtrack.size()/2)).get(i)));
+//                        }
 
-                        for(int i =0; i< unsortedtrack.size()-1;i++){
-                            for(int j =1; j< unsortedtrack.size()-i;j++){
-                                if(calculateDistance(departurePosition,unsortedtrack.get(j-1)) > calculateDistance(departurePosition,unsortedtrack.get(j))){
-                                    temp = unsortedtrack.get(j-1);
-                                    unsortedtrack.set(j-1, unsortedtrack.get(j));
-                                    unsortedtrack.set(j, temp);
-                                }
+
+                        unsortedtrack.add(0, departurePosition);
+                        unsortedtrack.add(unsortedtrack.size(), destinationPosition);
+
+                        double[][] parent = new double[unsortedtrack.size()-1][3];
+
+                        for (int tempPoint = 0; tempPoint<unsortedtrack.size()-1;++tempPoint){
+
+                            //sort the unsorted array to find the nearest edges to the current point being investigated
+                            ArrayList<LatLng> tempPoints = mindistToFirstPoint(unsortedtrack, unsortedtrack.get(tempPoint));
+
+                            //set up the edges for the tempPoint
+                            for (int tempPointEdges = 0; tempPointEdges<3; ++tempPointEdges){
+                                //at the current tempPoint input the current edge distance for each edge
+                                parent[tempPoint][tempPointEdges] = calculateDistance(tempPoints.get(tempPointEdges), unsortedtrack.get(tempPoint));
                             }
                         }
+                        //calculate Dijkstra based on the points collected.
+                        CalDijkstra.calculate(parent, 0);
 
-                        unsortedtrack.add(0,departurePosition);
-                        unsortedtrack.add(unsortedtrack.size(), destinationPosition);
-                        final Edge[] edges = new Edge[unsortedtrack.size()];
-                        //print sorted list
-                        for (int i=0; i< unsortedtrack.size();i++){
-                            //Log.d("cheese", "latlng: " + String.valueOf(calculateDistance(departurePosition, unsortedtrack.get(i))));
-                            //add each edge from the current index of the loop to its nearest node and calculating the distance between them
-                            edges[i] = new Edge(i, unsortedtrack.indexOf(mindistToFirstPoint(unsortedtrack, unsortedtrack.get(i))), calculateDistance(departurePosition,unsortedtrack.get(i)));
-                        }
 
-                        Graph g = new Graph(edges);
-                        g.calculateShortestDistances();
-                        g.printResult();
+
+//                        Object[][]  adjacencyMatrix = new Object[10][10];
+//
+//                        adjacencyMatrix[0] = new Object[]{"0", "4", "0", "0", "0", "0", "0", "8", "0"};
+//                        adjacencyMatrix[1] = new Object[]{4, 0, 8, 0, 0, 0, 0, 11, 0};
+////                        {0, 8, 0, 7, 0, 4, 0, 0, 2},
+////                        {0, 0, 7, 0, 9, 14, 0, 0, 0},
+////                        {0, 0, 0, 9, 0, 10, 0, 0, 0},
+////                        {0, 0, 4, 0, 10, 0, 2, 0, 0},
+////                        {0, 0, 0, 14, 0, 2, 0, 1, 6},
+////                        {8, 11, 0, 0, 0, 0, 1, 0, 7},
+////                        {0, 0, 2, 0, 0, 0, 6, 7, 0}
+//
+//                        Log.w("cheese", String.valueOf(adjacencyMatrix[0][0]) + " " + String.valueOf(adjacencyMatrix[1][0]));
+
+                        //CalculateDijkstra.calculate(adjacencyMatrix, 0);
+
+
+
+//                        LatLng temp;
+//
+//                        for(int i =0; i< unsortedtrack.size()-1;i++){
+//                            for(int j =1; j< unsortedtrack.size()-i;j++){
+//                                if(calculateDistance(departurePosition,unsortedtrack.get(j-1)) > calculateDistance(departurePosition,unsortedtrack.get(j))){
+//                                    temp = unsortedtrack.get(j-1);
+//                                    unsortedtrack.set(j-1, unsortedtrack.get(j));
+//                                    unsortedtrack.set(j, temp);
+//                                }
+//                            }
+//                        }
+//
+//                        unsortedtrack.add(0,departurePosition);
+//                        unsortedtrack.add(unsortedtrack.size(), destinationPosition);
+//                        final Edge[] edges = new Edge[unsortedtrack.size()];
+//                        //print sorted list
+//                        for (int i=0; i< unsortedtrack.size();i++){
+//                            //Log.d("cheese", "latlng: " + String.valueOf(calculateDistance(departurePosition, unsortedtrack.get(i))));
+//                            //add each edge from the current index of the loop to its nearest node and calculating the distance between them
+//                            //find the nearest point to the point chosen
+//                            //add it as a node to an edge
+//                            edges[i] = new Edge(i, unsortedtrack.indexOf(mindistToFirstPoint(unsortedtrack, unsortedtrack.get(i))), calculateDistance(departurePosition,unsortedtrack.get(i)));
+//                        }
+
+
+
+//                        Graph g = new Graph(edges);
+//                        g.calculateShortestDistances();
+//                        g.printResult();
 
 
 
 
 
                         //loop through all of the points taken from all of the routes to sort them into closest to furthest away from the starting point
-//                        Map<Integer, Double> unsortedlatlngs = new HashMap<>();
+//                        DisplayMap<Integer, Double> unsortedlatlngs = new HashMap<>();
 //
 //                        ArrayList<Integer> sortedtrack = new ArrayList<Integer>();
 //                        for ( int j = 0; j < unsortedtrack.size(); j++) {
 //
 //                            unsortedlatlngs.put(j, calculateDistance(departurePosition, unsortedtrack.get(j)));
 //                        }
-//                        Map<Integer, Double> sortedlatlngs = unsortedlatlngs
+//                        DisplayMap<Integer, Double> sortedlatlngs = unsortedlatlngs
 //                                .entrySet()
 //                                .stream()
 //                                .sorted(comparingByValue())
 //                                .collect(
-//                                        toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+//                                        toMap(DisplayMap.Entry::getKey, DisplayMap.Entry::getValue, (e1, e2) -> e2,
 //                                                LinkedHashMap::new));
 
 //                        Log.d("cheese", "unsorted: ");
@@ -393,14 +448,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
     }
 
-    private LatLng mindistToFirstPoint(ArrayList<LatLng> lat, LatLng firstPoint){
-        LatLng minlatLng = null;
-        for(int i=0; i<lat.size()-1;++i){
-            if((lat.get(i) != firstPoint) && ((calculateDistance(firstPoint, lat.get(i))) < calculateDistance(firstPoint, lat.get(i+1)))){
-                minlatLng = lat.get(i);
+    private ArrayList<LatLng> mindistToFirstPoint(ArrayList<LatLng> lat, LatLng firstPoint){
+//        LatLng minlatLng = null;
+//
+//        for(int i=0; i<lat.size()-1;++i){
+//            if((lat.get(i) != firstPoint) && ((calculateDistance(firstPoint, lat.get(i))) < calculateDistance(firstPoint, lat.get(i+1)))){
+//                minlatLng = lat.get(i);
+//            }
+//        }
+
+        ArrayList<LatLng> tempLat = (ArrayList<LatLng>) lat.clone();
+        LatLng temp;
+
+        for(int i =0; i< tempLat.size()-1;i++){
+            for(int j =1; j< tempLat.size()-i;j++){
+                if(calculateDistance(firstPoint,tempLat.get(j-1)) > calculateDistance(firstPoint,tempLat.get(j))){
+                    temp = tempLat.get(j-1);
+                    tempLat.set(j-1, tempLat.get(j));
+                    tempLat.set(j, temp);
+                }
             }
         }
-        return minlatLng;
+
+        return tempLat;
     }
     private void printMap(Map map) {
         Object[] keys;
