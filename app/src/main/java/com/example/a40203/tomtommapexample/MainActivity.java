@@ -277,7 +277,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
 
                             unsortedtrack.addAll(routes.get(i).getCoordinates());
-
 //                            unsortedtrack.sort() {
 //                                return a.distance - b.distance;
 //                            });
