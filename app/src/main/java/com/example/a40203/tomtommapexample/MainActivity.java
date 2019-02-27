@@ -317,6 +317,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         //calculate Dijkstra based on the points collected.
                         CalDijkstra.calculate(parent, 0);
 
+                        clearMap();
+
+                        color = Color.rgb(255,255,0);
+                        RouteStyle routestyle = RouteStyleBuilder.create()
+                                .withWidth(2.0)
+                                .withFillColor(color)
+                                .withOutlineColor(Color.GRAY).build();
+                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+                        newRoutePoints.add(unsortedtrack.get(3));
+                        newRoutePoints.add(unsortedtrack.get(14));
+                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+
 
 
 //                        Object[][]  adjacencyMatrix = new Object[10][10];
