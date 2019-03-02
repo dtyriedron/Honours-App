@@ -93,10 +93,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //travelTime
     private int[] travelTime;
 
-    //dijkstra
-    Edge[] edges;
-    Graph g;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

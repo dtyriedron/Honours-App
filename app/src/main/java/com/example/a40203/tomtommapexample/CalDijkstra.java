@@ -2,6 +2,8 @@ package com.example.a40203.tomtommapexample;
 
 import android.util.Log;
 
+import java.util.Random;
+
 public class CalDijkstra {
     private static final int NO_PARENT = -1;
 
@@ -87,8 +89,10 @@ public class CalDijkstra {
                 }
             }
         }
-
+        Log.w("cheese", "without speed decrease");
         printSolution(startVertex, shortestDistances, parents);
+        Log.w("cheese", " with speed decrease");
+        printSolution(startVertex, speedFactor(shortestDistances), parents);
     }
 
     // A utility function to print
@@ -137,5 +141,40 @@ public class CalDijkstra {
 
     public static String getPrinter(){
         return printer;
+    }
+
+    //apply different speed factors to the distances between points in the distances list
+    public static double[] speedFactor(double[] distances){
+        Random rand = new Random();
+
+        //the percentage of speed that the car is decreased by in various situations
+        double speedBumpDecrease = 0.25;
+        double trafficLightDecrease = 0.5;
+        double pedestrianDecrease = 0.1;
+
+        boolean speedBump;
+        boolean trafficLight;
+        boolean pedestrian;
+
+        for(int i=0; i<distances.length;++i){
+
+            //the chance of the car encountering each speed factor
+            speedBump = rand.nextDouble() <=0.3;
+            trafficLight = rand.nextDouble() <= 0.6;
+            pedestrian = rand.nextDouble() <= 0.8;
+
+            if(speedBump){
+                distances[i] = distances[i] * speedBumpDecrease;
+            }
+            if(trafficLight){
+                distances[i] = distances[i] * trafficLightDecrease;
+            }
+            if(pedestrian){
+                distances[i] = distances[i] * pedestrianDecrease;
+            }
+        }
+
+        return distances;
+
     }
 }
