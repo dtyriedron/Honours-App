@@ -586,17 +586,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             streetnames.add(response.getAddresses().get(0).getAddress().getStreetName());
                             Log.w("debug", "streetnames added: " + streetnames.get(count) + " " + count);
 
-                            //check if any streetnames match each other
-                            pointPos.clear();
-                            Log.w("debug", "list should be clear, size: " + pointPos.size());
-                            for(int j=1;j<streetnames.size();++j) {
-                                if(streetnames.get(count).equals(streetnames.get(j))){
-                                    pointPos.add(j);
-                                    Log.w("debug", "adding another point: " + pointPos.contains(j));
-                                }
-                            }
-                            map.put(streetnames.get(count), pointPos);
-                            Log.w("debug", "Map adding: "+streetnames.get(count) + " with: "+ pointPos.size() + "points");
+                            collateStreetPoints();
                             count++;
                         }
                         else{
@@ -704,6 +694,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     };
 */
+
+   private void collateStreetPoints(){
+       //check if any streetnames match each other
+           if(count>0) {
+               if (streetnames.get(count).equals(streetnames.get(count -1))) {
+                   //add another point to the current street's set of points
+                   pointPos.add(count);
+                   Log.w("debug", "adding another point: " + pointPos.contains(count-1));
+               }
+               else{
+                   //put previous streetname's points into map
+                   map.put(streetnames.get(count-1), pointPos);
+                   Log.w("debug", "Map adding2: "+streetnames.get(count-1) + " with: "+ pointPos.size() + "points");
+
+                   //clear the points list to make room for the next streetname
+                   pointPos.clear();
+                   Log.w("debug", "list should be clear, size: " + pointPos.size());
+
+                   //check if its the last streetname and therefore needs to added.
+                   if((count== streetnames.size()-1)){
+                       pointPos.add(count);
+                       map.put(streetnames.get(count), pointPos);
+                       Log.w("debug", "Map adding1: "+streetnames.get(count) + " with: "+ pointPos.size() + "points");
+                   }
+
+               }
+           }
+           else{
+               //add the first point to the current street's set of points
+               pointPos.add(count);
+           }
+
+   }
     private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
         return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
             @Override
