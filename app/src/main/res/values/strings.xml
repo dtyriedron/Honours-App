@@ -9,4 +9,7 @@
     <string name="add_to_my_route">Add to my route</string>
     <string name="tag1_name">tag1Name</string>
     <string name="tag2_name">tag2Name</string>
+    <string name="cancel">cancel</string>
+    <string name="ok">ok</string>
+    <string name="loading">loading...</string>
 </resources>

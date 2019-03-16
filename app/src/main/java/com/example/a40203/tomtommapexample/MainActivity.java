@@ -2,6 +2,12 @@ package com.example.a40203.tomtommapexample;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Point;
+import android.location.Address;
+import android.location.Location;
+import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -17,6 +23,8 @@ import com.google.common.base.Optional;
 import com.tomtom.online.sdk.common.location.BoundingBox;
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.map.BaseMarkerBalloon;
+import com.tomtom.online.sdk.map.Chevron;
+import com.tomtom.online.sdk.map.ChevronBuilder;
 import com.tomtom.online.sdk.map.Icon;
 import com.tomtom.online.sdk.map.MapFragment;
 import com.tomtom.online.sdk.map.Marker;
@@ -29,6 +37,7 @@ import com.tomtom.online.sdk.map.RouteStyleBuilder;
 import com.tomtom.online.sdk.map.SingleLayoutBalloonViewAdapter;
 import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.map.TomtomMapCallback;
+import com.tomtom.online.sdk.map.model.MapTilesType;
 import com.tomtom.online.sdk.routing.OnlineRoutingApi;
 import com.tomtom.online.sdk.routing.RoutingApi;
 import com.tomtom.online.sdk.routing.data.FullRoute;
@@ -41,20 +50,33 @@ import com.tomtom.online.sdk.search.SearchApi;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchQueryBuilder;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchResponse;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchResult;
+import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderFullAddress;
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchQueryBuilder;
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchResponse;
 import com.tomtom.online.sdk.traffic.OnlineTrafficApi;
 import com.tomtom.online.sdk.traffic.TrafficApi;
 
+import org.json.JSONObject;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
@@ -77,10 +99,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Icon departureIcon;
     private Icon destinationIcon;
     private ImageButton btnSearch;
-    private ImageButton btnTrafficList;
     private EditText editTextPois;
-    private View view;
-    private BoundingBox bbox;
+    private ArrayList<String> streetnames;
+    //map of different streetnames and their positions in the original streetname array
+    Map<String, ArrayList<Integer>> map;
+    ArrayList<Integer> pointPos;
     //text to speech
     TextToSpeech mTTS = null;
     private final int ACT_CHECK_TTS_DATA = 1000;
@@ -92,6 +115,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int[] routeColours;
     //travelTime
     private int[] travelTime;
+
+    final int MAX_DETOUR_TIME = 10000;
+    final int QUERY_LIMIT = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,12 +137,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull final TomtomMap tomtomMap) {
         this.tomtomMap = tomtomMap;
+        this.tomtomMap.getUiSettings().setMapTilesType(MapTilesType.VECTOR);
         this.tomtomMap.setMyLocationEnabled(true);
         this.tomtomMap.addOnMapLongClickListener(this);
         this.tomtomMap.getMarkerSettings().setMarkersClustering(true);
         this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
-        this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
-        this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
+        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
+        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
     }
     public void clearMap(){
         tomtomMap.clear();
@@ -166,7 +193,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         departureIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_departure);
         destinationIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_destination);
         btnSearch = findViewById(R.id.btn_main_poisearch);
-        btnTrafficList = findViewById(R.id.btn_traffic_list);
         editTextPois = findViewById(R.id.edittext_main_poisearch);
     }
 
@@ -177,6 +203,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //btnTrafficList.setOnClickListener(trafficButtonListener);
     }
 
+//    private void getLocation(){
+////        Icon activeIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_markedlocation);
+////        Icon inactiveIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.arrow_down);
+////        ChevronBuilder chevronBuilder = ChevronBuilder.create(activeIcon, inactiveIcon);
+////        Chevron chevron = tomtomMap.getDrivingSettings().addChevron(chevronBuilder);
+////        tomtomMap.getDrivingSettings().startTracking(chevron);
+////        chevron.getLocation();
+////        tomtomMap.getDrivingSettings().stopTracking();
+//    }
 
 
     private void handleLongClick(@NonNull LatLng latLng){
@@ -244,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void drawRouteWithWayPoints(LatLng start, LatLng stop, LatLng[] wayPoints){
-        RouteQuery routeQuery = createRouteQuery(start, stop, wayPoints).withMaxAlternatives(19);
+        RouteQuery routeQuery = createRouteQuery(start, stop, wayPoints).withMaxAlternatives(9);
         routingApi.planRoute(routeQuery)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -260,28 +295,70 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     private void displayRoutes(List<FullRoute> routes) {
                         //travelTime = new int[2];
                         Random rnd = new Random();
-                        ArrayList<LatLng> unsortedtrack = new ArrayList<LatLng>();
+                        ArrayList<LatLng> points = new ArrayList<LatLng>();
+                        streetnames = new ArrayList<>();
+                        pointPos = new ArrayList<>();
+                        map = new HashMap<>();
 
                         int color;
                         for (int i = 0; i<routes.size();++i) {
-                            color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-                            RouteStyle routestyle = RouteStyleBuilder.create()
-                                    .withWidth(2.0)
-                                    .withFillColor(color)
-                                    .withOutlineColor(Color.GRAY).build();
-                            route = tomtomMap.addRoute(new RouteBuilder(
-                                    routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
 
-                            unsortedtrack.addAll(routes.get(i).getCoordinates());
-//                            unsortedtrack.sort() {
-//                                return a.distance - b.distance;
-//                            });
+                            //color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+//                            RouteStyle routestyle = RouteStyleBuilder.create()
+//                                    .withWidth(2.0)
+//                                    .withFillColor(color)
+//                                    .withOutlineColor(Color.GRAY).build();
+//                            route = tomtomMap.addRoute(new RouteBuilder(
+//                                    routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
 
-                            //add dijkstra
+                            points.addAll(routes.get(i).getCoordinates());
+                            route = tomtomMap.addRoute(new RouteBuilder(routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
 
-                            //travelTime[i] = routes.get(i).getSummary().getTravelTimeInSeconds();
-                            Log.w("cheese", "dist: "+ String.valueOf(routes.get(i).getSummary().getDeviationDistance()));
                         }
+
+                        int numThreads = Runtime.getRuntime().availableProcessors();
+                        Log.w("debug", "number of available threads: "+numThreads);
+
+                        //get all the coordinates from all the routes
+                        int numOfCoords = points.size();
+                        //atomic integer for thread safe access
+                        AtomicInteger numOfCoordsLeft = new AtomicInteger(numOfCoords);
+
+                        Log.w("debug", "number of coords to search for: "+ numOfCoords);
+                        //service pool of tasks to execute
+                        ExecutorService service = Executors.newFixedThreadPool(numOfCoords);
+
+
+                        //submit all the tasks using for loop
+                        for(int o=0;o<numOfCoords;++o) {
+                            int finalO = o;
+                            service.submit(() -> {
+                                //reverse geocode each coordinates to find streetnames
+                                searchForLatLng(points.get(numOfCoordsLeft.decrementAndGet()));
+                                Log.w("debug", "thread" + finalO + " num of coords now: "+numOfCoordsLeft);
+                            });
+                            //5 api calls a second so 1000/5 = 200 -make a call every 200ms
+                            SystemClock.sleep(200);
+                        }
+
+                        service.shutdown();
+                        try {
+                            service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+
+
+
+                        //get the streetname for each point and add it to an array
+
+//                                array[j] = String.valueOf(route.getCoordinates().get(j));
+//                                //array[j] = streetName;
+//                                array[j] = array[j].replace("LatLng(latitude=", "");
+//                                array[j] = array[j].replace("longitude=", "");
+//                                array[j] = array[j].replace(")", "");
+//                                Log.w("cheese", "points: "+array[j]);
 
 //                        Log.w("cheese", "number of points: " + unsortedtrack.size());
 //                        for (int i =0; i< unsortedtrack.size()/4; ++i){
@@ -294,90 +371,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                        }
 
 
-                        unsortedtrack.add(0, departurePosition);
-                        unsortedtrack.add(unsortedtrack.size(), destinationPosition);
 
-                        double[][] parent = new double[unsortedtrack.size()-1][3];
-
-                        for (int tempPoint = 0; tempPoint<unsortedtrack.size()-1;++tempPoint){
-
-                            //sort the unsorted array to find the nearest edges to the current point being investigated
-                            ArrayList<LatLng> tempPoints = mindistToFirstPoint(unsortedtrack, unsortedtrack.get(tempPoint));
-
-                            //set up the edges for the tempPoint
-                            for (int tempPointEdges = 0; tempPointEdges<3; ++tempPointEdges){
-                                //at the current tempPoint input the current edge distance for each edge
-                                parent[tempPoint][tempPointEdges] = calculateDistance(tempPoints.get(tempPointEdges), unsortedtrack.get(tempPoint));
-                            }
-                        }
-                        //calculate Dijkstra based on the points collected.
-                        CalDijkstra.calculate(parent, 0);
-
-                        clearMap();
-
-                        color = Color.rgb(255,255,0);
-                        RouteStyle routestyle = RouteStyleBuilder.create()
-                                .withWidth(2.0)
-                                .withFillColor(color)
-                                .withOutlineColor(Color.GRAY).build();
-                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
-                        newRoutePoints.add(unsortedtrack.get(3));
-                        newRoutePoints.add(unsortedtrack.get(14));
-                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
-
-
-
-//                        Object[][]  adjacencyMatrix = new Object[10][10];
+//                        //create 2d array made up of points and there 3 adjacent vertexes
+//                        double[][] parent = new double[unsortedtrack.size()-1][3];
 //
-//                        adjacencyMatrix[0] = new Object[]{"0", "4", "0", "0", "0", "0", "0", "8", "0"};
-//                        adjacencyMatrix[1] = new Object[]{4, 0, 8, 0, 0, 0, 0, 11, 0};
-////                        {0, 8, 0, 7, 0, 4, 0, 0, 2},
-////                        {0, 0, 7, 0, 9, 14, 0, 0, 0},
-////                        {0, 0, 0, 9, 0, 10, 0, 0, 0},
-////                        {0, 0, 4, 0, 10, 0, 2, 0, 0},
-////                        {0, 0, 0, 14, 0, 2, 0, 1, 6},
-////                        {8, 11, 0, 0, 0, 0, 1, 0, 7},
-////                        {0, 0, 2, 0, 0, 0, 6, 7, 0}
+//                        //loop for every point on every route
+//                        for (int tempPoint = 0; tempPoint<unsortedtrack.size()-1;++tempPoint){
 //
-//                        Log.w("cheese", String.valueOf(adjacencyMatrix[0][0]) + " " + String.valueOf(adjacencyMatrix[1][0]));
-
-                        //CalculateDijkstra.calculate(adjacencyMatrix, 0);
-
-
-
-//                        LatLng temp;
+//                            //sort the unsorted array to find the nearest edges to the current point being investigated
+//                            ArrayList<LatLng> tempPoints = Helper.mindistToFirstPoint(unsortedtrack, unsortedtrack.get(tempPoint));
 //
-//                        for(int i =0; i< unsortedtrack.size()-1;i++){
-//                            for(int j =1; j< unsortedtrack.size()-i;j++){
-//                                if(calculateDistance(departurePosition,unsortedtrack.get(j-1)) > calculateDistance(departurePosition,unsortedtrack.get(j))){
-//                                    temp = unsortedtrack.get(j-1);
-//                                    unsortedtrack.set(j-1, unsortedtrack.get(j));
-//                                    unsortedtrack.set(j, temp);
-//                                }
+//                            //set up the edges for the tempPoint
+//                            for (int tempPointEdges = 0; tempPointEdges<3; ++tempPointEdges){
+//                                //at the current tempPoint input the current edge distance for each edge
+//                                parent[tempPoint][tempPointEdges] = Helper.calculateDistance(tempPoints.get(tempPointEdges), unsortedtrack.get(tempPoint));
 //                            }
 //                        }
 //
-//                        unsortedtrack.add(0,departurePosition);
-//                        unsortedtrack.add(unsortedtrack.size(), destinationPosition);
-//                        final Edge[] edges = new Edge[unsortedtrack.size()];
-//                        //print sorted list
-//                        for (int i=0; i< unsortedtrack.size();i++){
-//                            //Log.d("cheese", "latlng: " + String.valueOf(calculateDistance(departurePosition, unsortedtrack.get(i))));
-//                            //add each edge from the current index of the loop to its nearest node and calculating the distance between them
-//                            //find the nearest point to the point chosen
-//                            //add it as a node to an edge
-//                            edges[i] = new Edge(i, unsortedtrack.indexOf(mindistToFirstPoint(unsortedtrack, unsortedtrack.get(i))), calculateDistance(departurePosition,unsortedtrack.get(i)));
+//                        double[][] adjacencyMatrix = { { 0, 4, 0, 0, 0, 0, 0, 8, 0 },
+//                                { 4, 0, 8, 0, 0, 0, 0, 11, 0 },
+//                                { 0, 8, 0, 7, 0, 4, 0, 0, 2 },
+//                                { 0, 0, 7, 0, 9, 14, 0, 0, 0 },
+//                                { 0, 0, 0, 9, 0, 10, 0, 0, 0 },
+//                                { 0, 0, 4, 0, 10, 0, 2, 0, 0 },
+//                                { 0, 0, 0, 14, 0, 2, 0, 1, 6 },
+//                                { 8, 11, 0, 0, 0, 0, 1, 0, 7 },
+//                                { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
+
+                        //calculate Dijkstra based on the points collected.
+                        //CalDijkstra.calculate(adjacencyMatrix, 0);
+                        //clearMap();
+
+//                        color = Color.rgb(255,255,0);
+//                        RouteStyle routestyle = RouteStyleBuilder.create()
+//                                .withWidth(2.0)
+//                                .withFillColor(color)
+//                                .withOutlineColor(Color.GRAY).build();
+//
+//                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+//                        for (int i =0; i<unsortedtrack.size()-1; ++i){
+//                            newRoutePoints.add(unsortedtrack.get(i));
 //                        }
+//                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
 
-
-
-//                        Graph g = new Graph(edges);
-//                        g.calculateShortestDistances();
-//                        g.printResult();
-
-
-
-
+//                        MainActivity.this.runOnUiThread(() -> {
+//                            ConnectToDB connectToDB = new ConnectToDB();
+//                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
+//                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
+//                        });
 
                         //loop through all of the points taken from all of the routes to sort them into closest to furthest away from the starting point
 //                        DisplayMap<Integer, Double> unsortedlatlngs = new HashMap<>();
@@ -419,6 +460,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
 
 
+
 //                    private void createAndDisplayCustomTag1(RouteResult result){
 //                        Location tag1 = result.getRoutes().get(0).getLegs()[result.getRoutes().get(0).getLegs().length/2].getPoints()[0].toLocation();
 //
@@ -453,58 +495,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         clearMap();
                     }
                 });
+
     }
 
-    private ArrayList<LatLng> mindistToFirstPoint(ArrayList<LatLng> lat, LatLng firstPoint){
-//        LatLng minlatLng = null;
-//
-//        for(int i=0; i<lat.size()-1;++i){
-//            if((lat.get(i) != firstPoint) && ((calculateDistance(firstPoint, lat.get(i))) < calculateDistance(firstPoint, lat.get(i+1)))){
-//                minlatLng = lat.get(i);
-//            }
+
+//    private void printMap(Map map) {
+//        Object[] keys;
+//        Object[] values;
+//        keys = map.keySet().toArray();
+//        values = map.values().toArray();
+//        for (int i =0; i<map.size()/4;++i){
+//            Log.d("cheese","Key: " + keys[i] + "Value: " + values[i]);
 //        }
-
-        ArrayList<LatLng> tempLat = (ArrayList<LatLng>) lat.clone();
-        LatLng temp;
-
-        for(int i =0; i< tempLat.size()-1;i++){
-            for(int j =1; j< tempLat.size()-i;j++){
-                if(calculateDistance(firstPoint,tempLat.get(j-1)) > calculateDistance(firstPoint,tempLat.get(j))){
-                    temp = tempLat.get(j-1);
-                    tempLat.set(j-1, tempLat.get(j));
-                    tempLat.set(j, temp);
-                }
-            }
-        }
-
-        return tempLat;
-    }
-    private void printMap(Map map) {
-        Object[] keys;
-        Object[] values;
-        keys = map.keySet().toArray();
-        values = map.values().toArray();
-        for (int i =0; i<map.size()/4;++i){
-            Log.d("cheese","Key: " + keys[i] + "Value: " + values[i]);
-        }
-    }
-
-    private double calculateDistance(LatLng latlng1, LatLng latlng2){
-        double radlat1 = Math.PI * latlng1.getLatitude()/180;
-        double radlat2 = Math.PI * latlng2.getLatitude()/180;
-        double theta = latlng1.getLongitude()-latlng2.getLongitude();
-        double radtheta = Math.PI * theta/180;
-        double dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
-        dist = Math.acos(dist);
-        dist = dist*180/Math.PI;
-        dist = dist * 60 * 1.1515;
-        return dist;
-    }
+//    }
     private void createMarkerIfNotPresent(LatLng position, Icon icon){
         com.google.common.base.Optional<Marker> optionalMarker = tomtomMap.findMarkerByPosition(position);
         if(!optionalMarker.isPresent()){
             tomtomMap.addMarker(new MarkerBuilder(position).icon(icon));
         }
+    }
+
+    public static void getResponse(String string){
+        Log.w("cheese", string);
     }
 
     @NonNull
@@ -521,7 +533,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     Optional<CharSequence> description = Optional.fromNullable(v.getContentDescription());
                     if(description.isPresent()){
                         editTextPois.setText(description.get());
-
                         v.setSelected(true);
                     }
                     if(isWayPointPositionSet()){
@@ -529,9 +540,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         drawRoute(departurePosition, destinationPosition);
                     }
                     String textToSearch = editTextPois.getText().toString();
+                    LatLng lngToSearch = new LatLng(Double.valueOf(textToSearch.split(",")[0]), Double.valueOf(textToSearch.split(",")[1]));
                     if(!textToSearch.isEmpty()){
                         tomtomMap.removeMarkers();
-                        searchAlongTheRoute(route, textToSearch);
+                        searchForLatLng(lngToSearch);
+                        //searchAlongTheRoute(textToSearch);
                     }
                 }
             }
@@ -543,11 +556,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             private boolean isWayPointPositionSet(){
                 return wayPointPosition != null;
             }
-            private void searchAlongTheRoute(Route route, final String textToSearch){
-                final Integer MAX_DETOUR_TIME = 1000;
-                final Integer QUERY_LIMIT = 10;
 
-                searchApi.alongRouteSearch(new AlongRouteSearchQueryBuilder(textToSearch, route.getCoordinates(), MAX_DETOUR_TIME).withLimit(QUERY_LIMIT))
+        };
+    }
+
+//    private void addDistances(){
+//
+//    }
+
+    int count = 0;
+    private void searchForLatLng(LatLng latLng){
+        searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new DisposableSingleObserver<ReverseGeocoderSearchResponse>() {
+                    @Override
+                    public void onSuccess(ReverseGeocoderSearchResponse response){
+                        processResponse(response);
+                    }
+
+                    @Override
+                    public void onError(Throwable e){
+                        handleApiError(e);
+                    }
+
+                    private void processResponse(ReverseGeocoderSearchResponse response){
+                        if(response.hasResults()) {
+                            //put into array of streetnames
+                            streetnames.add(response.getAddresses().get(0).getAddress().getStreetName());
+                            Log.w("debug", "streetnames added: " + streetnames.get(count) + " " + count);
+
+                            //check if any streetnames match each other
+                            pointPos.clear();
+                            Log.w("debug", "list should be clear, size: " + pointPos.size());
+                            for(int j=1;j<streetnames.size();++j) {
+                                if(streetnames.get(count).equals(streetnames.get(j))){
+                                    pointPos.add(j);
+                                    Log.w("debug", "adding another point: " + pointPos.contains(j));
+                                }
+                            }
+                            map.put(streetnames.get(count), pointPos);
+                            Log.w("debug", "Map adding: "+streetnames.get(count) + " with: "+ pointPos.size() + "points");
+                            count++;
+                        }
+                        else{
+                            Toast.makeText(MainActivity.this, getString(R.string.geocode_no_results), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    private void searchAlongTheRoute(final String textToSearch){
+
+        searchApi.alongRouteSearch(new AlongRouteSearchQueryBuilder(textToSearch, route.getCoordinates(), MAX_DETOUR_TIME).withLimit(QUERY_LIMIT))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new DisposableSingleObserver<AlongRouteSearchResponse>() {
@@ -562,13 +623,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 createAndDisplayCustomMarker(result.getPosition(), result);
                             }
                             tomtomMap.zoomToAllMarkers();
+
                         } else{
                             Toast.makeText(MainActivity.this, String.format(getString(R.string.no_search_results), textToSearch), Toast.LENGTH_LONG).show();
                         }
                     }
 
                     private void createAndDisplayCustomMarker(LatLng position, AlongRouteSearchResult result){
-                        String address = result.getAddress().getFreeformAddress();
+                        String address = result.getAddress().getStreetName();
                         String poiName = result.getPoi().getName();
 
                         BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
@@ -586,8 +648,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         handleApiError(e);
                     }
                 });
-            }
-        };
     }
 
    /* @NonNull

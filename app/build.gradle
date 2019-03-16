@@ -39,4 +39,5 @@ dependencies {
     implementation 'com.tomtom.online:sdk-traffic:2.243'
     implementation 'com.tomtom.online:sdk-maps-ui-extensions:2.3+'
     implementation 'com.tomtom.online:sdk-maps-styles-extensions:2.3+'
+    implementation 'com.squareup.okhttp3:okhttp:3.13.1'
 }
