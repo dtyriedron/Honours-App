@@ -37,7 +37,7 @@ public class DijkstraUnitTest {
                 { 8, 11, 0, 0, 0, 0, 1, 0, 7 },
                 { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
 
-        CalDijkstra.calculate(adjacencyMatrix,0);
+        CalcDijkstra.calculate(adjacencyMatrix,0);
 
         String output = "Vertex  Distance   Path\n" +
                 "0 -> 1       4.0        0 1 \n" +
@@ -50,6 +50,6 @@ public class DijkstraUnitTest {
                 "0 -> 8       14.0       0 1 2 8 ";
 
 
-        assertEquals(output, CalDijkstra.getPrinter());
+        assertEquals(output, CalcDijkstra.getPrinter());
     }
 }

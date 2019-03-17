@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 
-public class CalDijkstra {
+public class CalcDijkstra {
 
 
     public static AtomicDouble atomicDouble = new AtomicDouble(Integer.MAX_VALUE);

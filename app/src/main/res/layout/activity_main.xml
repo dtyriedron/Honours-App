@@ -41,7 +41,10 @@
             app:layout_constraintEnd_toStartOf="@id/btn_main_poisearch"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:inputType="text"/>
+            android:inputType="text"
+            android:textColor="@color/black_fully_opaque"
+            android:textColorHint="@color/cardview_dark_background"/>
+
         <ImageButton
             android:id="@+id/btn_main_poisearch"
             android:layout_width="wrap_content"

@@ -2,11 +2,6 @@ package com.example.a40203.tomtommapexample;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.Point;
-import android.location.Address;
-import android.location.Location;
-import android.os.Handler;
-import android.os.Message;
 import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
@@ -20,11 +15,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.common.base.Optional;
-import com.tomtom.online.sdk.common.location.BoundingBox;
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.map.BaseMarkerBalloon;
-import com.tomtom.online.sdk.map.Chevron;
-import com.tomtom.online.sdk.map.ChevronBuilder;
 import com.tomtom.online.sdk.map.Icon;
 import com.tomtom.online.sdk.map.MapFragment;
 import com.tomtom.online.sdk.map.Marker;
@@ -50,7 +42,6 @@ import com.tomtom.online.sdk.search.SearchApi;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchQueryBuilder;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchResponse;
 import com.tomtom.online.sdk.search.data.alongroute.AlongRouteSearchResult;
-import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderFullAddress;
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchQueryBuilder;
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchResponse;
 import com.tomtom.online.sdk.traffic.OnlineTrafficApi;
@@ -58,21 +49,13 @@ import com.tomtom.online.sdk.traffic.TrafficApi;
 
 import org.json.JSONObject;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Deque;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Random;
-import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -101,6 +84,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton btnSearch;
     private EditText editTextPois;
     private ArrayList<String> streetnames;
+    private ArrayList<LatLng> points;
+    private double[][] organisedPoints;
+    int pointCount = 0;
     //map of different streetnames and their positions in the original streetname array
     Map<String, ArrayList<Integer>> map;
     ArrayList<Integer> pointPos;
@@ -150,6 +136,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         departurePosition = null;
         destinationPosition = null;
         route = null;
+        points.clear();
+        streetnames.clear();
+        pointPos.clear();
+        map.clear();
+        pointCount = 0;
+        organisedPoints = null;
     }
 
     @Override
@@ -241,6 +233,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(!isDeparturePositionSet()){
                     setAndDisplayDeparturePosition(geocodedPosition);
                 } else{
+                    points = new ArrayList<>();
+                    streetnames = new ArrayList<>();
+                    pointPos = new ArrayList<>();
+                    map = new HashMap<>();
                     destinationPosition = geocodedPosition;
                     tomtomMap.removeMarkers();
                     drawRoute(departurePosition, destinationPosition);
@@ -294,13 +290,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     private void displayRoutes(List<FullRoute> routes) {
                         //travelTime = new int[2];
-                        Random rnd = new Random();
-                        ArrayList<LatLng> points = new ArrayList<LatLng>();
-                        streetnames = new ArrayList<>();
-                        pointPos = new ArrayList<>();
-                        map = new HashMap<>();
+                        //Random rnd = new Random();
+                        //prepare to organise the points for dijkstra
 
-                        int color;
                         for (int i = 0; i<routes.size();++i) {
 
                             //color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
@@ -312,9 +304,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                                    routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
 
                             points.addAll(routes.get(i).getCoordinates());
-                            route = tomtomMap.addRoute(new RouteBuilder(routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
+
+                            //route = tomtomMap.addRoute(new RouteBuilder(routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
 
                         }
+//                        organisedPoints = new double[points.size()][3];
+//                        compareRoutes(routes);
+//                        String string = "\n";
+//
+//                for(double[] i: organisedPoints){
+//                    for(double j: i){
+//                         string +=j;
+//                         string += ", ";
+//                    }
+//                    string += "\n";
+//                }
+//                Log.w("debug2", "organised points current street: "+ string);
 
                         int numThreads = Runtime.getRuntime().availableProcessors();
                         Log.w("debug", "number of available threads: "+numThreads);
@@ -323,6 +328,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         int numOfCoords = points.size();
                         //atomic integer for thread safe access
                         AtomicInteger numOfCoordsLeft = new AtomicInteger(numOfCoords);
+
+//                        //initialise array by setting values  0
+//                        for(double[] i: organisedPoints){
+//                            for(double j: i){
+//                                j=0;
+//                            }
+//                        }
+                        //Log.w("debug", "lat: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLatitude()) + " long: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLongitude()));
+
 
                         Log.w("debug", "number of coords to search for: "+ numOfCoords);
                         //service pool of tasks to execute
@@ -399,26 +413,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                                { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
 
                         //calculate Dijkstra based on the points collected.
-                        //CalDijkstra.calculate(adjacencyMatrix, 0);
+                        //CalcDijkstra.calculate(points, 0);
                         //clearMap();
 
-//                        color = Color.rgb(255,255,0);
-//                        RouteStyle routestyle = RouteStyleBuilder.create()
-//                                .withWidth(2.0)
-//                                .withFillColor(color)
-//                                .withOutlineColor(Color.GRAY).build();
-//
-//                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
-//                        for (int i =0; i<unsortedtrack.size()-1; ++i){
-//                            newRoutePoints.add(unsortedtrack.get(i));
-//                        }
-//                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
 
-//                        MainActivity.this.runOnUiThread(() -> {
-//                            ConnectToDB connectToDB = new ConnectToDB();
-//                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
-//                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
-//                        });
+                       // color = Color.rgb(255,255,0);
+
+
+
+
+                        MainActivity.this.runOnUiThread(() -> {
+                            ConnectToDB connectToDB = new ConnectToDB();
+                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
+                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
+                        });
 
                         //loop through all of the points taken from all of the routes to sort them into closest to furthest away from the starting point
 //                        DisplayMap<Integer, Double> unsortedlatlngs = new HashMap<>();
@@ -497,17 +505,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
 
     }
-
-
-//    private void printMap(Map map) {
-//        Object[] keys;
-//        Object[] values;
-//        keys = map.keySet().toArray();
-//        values = map.values().toArray();
-//        for (int i =0; i<map.size()/4;++i){
-//            Log.d("cheese","Key: " + keys[i] + "Value: " + values[i]);
-//        }
-//    }
     private void createMarkerIfNotPresent(LatLng position, Icon icon){
         com.google.common.base.Optional<Marker> optionalMarker = tomtomMap.findMarkerByPosition(position);
         if(!optionalMarker.isPresent()){
@@ -560,11 +557,135 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
     }
 
-//    private void addDistances(){
-//
-//    }
+    private void compareRoutes(List<FullRoute> routes){
 
-    int count = 0;
+        Log.w("debug", "number of routes: "+ routes.size());
+        for(int i=0;i<routes.size()-1;++i){
+            for(int j =0; j<routes.get(i).getCoordinates().size()-1;++j){
+                for(int k=0;k<3;++k){
+                    if(i>0) {
+                        //compare all the points of each route and set the distances that match
+                        if (routes.get(i).getCoordinates().get(j) == routes.get(i - 1).getCoordinates().get(j)) {
+                            Log.w("debug", "got here");
+                            if(k>0){
+                                organisedPoints[j][k] = Helper.calculateDistance(routes.get(i).getCoordinates().get(j), routes.get(i).getCoordinates().get(j-1));
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+
+    }
+
+    private void collateStreetPoints(){
+        //check if any streetnames match each other
+        if(pointCount >0) {
+            if (streetnames.get(pointCount).equals(streetnames.get(pointCount -1))) {
+                //add another point to the current street's set of points
+                pointPos.add(pointCount);
+                Log.w("debug", "adding another point: " + pointCount + " for: " + streetnames.get(pointCount));
+                //update or add new streetname and add its points
+                map.put(streetnames.get(pointCount), pointPos);
+                Log.w("debug", "Map adding1: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+                Log.w("debug2",  "size of the map: " + map.size());
+
+
+                //give the street some colour
+                newStreetNewColour(pointCount);
+//                String string = "\n";
+//                for(double[] i: organisedPoints){
+//                    for(double j: i){
+//                        string +=j;
+//                        string += ", ";
+//                    }
+//                    string += "\n";
+//                }
+//                Log.w("debug2", "organised points current street: "+ string);
+
+            }else{
+                pointPos.clear();
+                pointPos.add(pointCount);
+                //put the new streetname's points into map
+                map.put(streetnames.get(pointCount), pointPos);
+//                map.get(streetnames.get(pointCount-1)).size()-1)
+//                for(int i = 1; i<pointPos.size();++i) {
+//                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(i)), points.get(i-1));
+//                }
+                Log.w("debug", "Map adding2: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+                Log.w("debug2",  "size of the map: " + map.size());
+
+//                String string = "\n";
+
+//                for(double[] i: organisedPoints){
+//                    for(double j: i){
+//                         string +=j;
+//                         string += ", ";
+//                    }
+//                    string += "\n";
+//                }
+//                Log.w("debug2", "organised points current street: "+ string);
+
+                //give the street some colour
+                newStreetNewColour(pointCount);
+
+//                //check if its the last streetname and therefore needs to added.
+//                if((pointCount == points.size()-1)){
+//                    pointPos.add(pointCount);
+//                    Log.w("debug", "adding the last point: " + pointCount);
+//                    map.put(streetnames.get(pointCount), pointPos);
+//                    Log.w("debug", "Map adding1: "+ streetnames.get(pointCount) + " with: " + pointPos.size() + "points");
+//
+//                    //String key = (String) ;
+//                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(0)), points.get(map.get(streetnames.get(pointCount-1)).size()-1));
+//                    newStreetNewColour(pointCount);
+//                }
+
+            }
+//            else{
+//                pointPos.add(pointCount);
+//                map.put(streetnames.get(pointCount), pointPos);
+//                Log.w("debug", "map adding1: " + streetnames.get(pointCount) + "with: " + pointPos.size() + "points");
+//                Log.w("debug", "adding odd point: " + pointCount);
+//                pointPos.clear();
+//                newStreetNewColour(pointCount);
+//            }
+        } else {
+            //add the first point to the current street's set of points
+            pointPos.add(pointCount);
+            Log.w("debug", "adding first point: " + pointCount);
+        }
+
+    }
+
+    private void newStreetNewColour(int currrentStreet){
+        Log.w("debug", "colouring in: " + streetnames.get(currrentStreet));
+        //loop for every street in the route
+            //new color for every street
+            Random rnd = new Random();
+            int color;
+            color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+            RouteStyle routestyle = RouteStyleBuilder.create()
+                    .withWidth(2.0)
+                    .withFillColor(color)
+                    .withOutlineColor(Color.GRAY).build();
+
+            //get the list of points for the current street
+            ArrayList<Integer> streetPointPos = map.get(streetnames.get(currrentStreet));
+            //new list of points that relate to current point position in the street
+            ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+
+            //loop for all the points in the street
+            for(int j=0; j<streetPointPos.size();++j){
+                newRoutePoints.add(points.get(streetPointPos.get(j)));
+            }
+            //draw the street
+            route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+
+    }
+
+
     private void searchForLatLng(LatLng latLng){
         searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
                 .subscribeOn(Schedulers.io())
@@ -584,10 +705,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if(response.hasResults()) {
                             //put into array of streetnames
                             streetnames.add(response.getAddresses().get(0).getAddress().getStreetName());
-                            Log.w("debug", "streetnames added: " + streetnames.get(count) + " " + count);
+                            // Log.w("debug", "streetnames added: " + streetnames.get(pointCount) + " " + pointCount);
 
+                            //add all the points up that relate top that street
                             collateStreetPoints();
-                            count++;
+                            pointCount++;
                         }
                         else{
                             Toast.makeText(MainActivity.this, getString(R.string.geocode_no_results), Toast.LENGTH_SHORT).show();
@@ -695,38 +817,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
 */
 
-   private void collateStreetPoints(){
-       //check if any streetnames match each other
-           if(count>0) {
-               if (streetnames.get(count).equals(streetnames.get(count -1))) {
-                   //add another point to the current street's set of points
-                   pointPos.add(count);
-                   Log.w("debug", "adding another point: " + pointPos.contains(count-1));
-               }
-               else{
-                   //put previous streetname's points into map
-                   map.put(streetnames.get(count-1), pointPos);
-                   Log.w("debug", "Map adding2: "+streetnames.get(count-1) + " with: "+ pointPos.size() + "points");
 
-                   //clear the points list to make room for the next streetname
-                   pointPos.clear();
-                   Log.w("debug", "list should be clear, size: " + pointPos.size());
-
-                   //check if its the last streetname and therefore needs to added.
-                   if((count== streetnames.size()-1)){
-                       pointPos.add(count);
-                       map.put(streetnames.get(count), pointPos);
-                       Log.w("debug", "Map adding1: "+streetnames.get(count) + " with: "+ pointPos.size() + "points");
-                   }
-
-               }
-           }
-           else{
-               //add the first point to the current street's set of points
-               pointPos.add(count);
-           }
-
-   }
     private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
         return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
             @Override
