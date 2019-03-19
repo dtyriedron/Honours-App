@@ -308,18 +308,84 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             //route = tomtomMap.addRoute(new RouteBuilder(routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
 
                         }
-//                        organisedPoints = new double[points.size()][3];
-//                        compareRoutes(routes);
-//                        String string = "\n";
-//
-//                for(double[] i: organisedPoints){
-//                    for(double j: i){
-//                         string +=j;
-//                         string += ", ";
-//                    }
-//                    string += "\n";
-//                }
-//                Log.w("debug2", "organised points current street: "+ string);
+                        Log.w("debug", "number of routes: "+ routes.size());
+                        //organisedPoints = new double[points.size()][3];
+                        organisedPoints = new double[points.size()][points.size()];
+                        //initialise array by setting values  0
+                        for(double[] i: organisedPoints){
+                            for(double j: i){
+                                j=0;
+                            }
+                        }
+                        int localCounter1;
+                        int localCounter2;
+                        int globalCounter1=0;
+                        int globalCounter2=1;
+                        int matchCounter=1;
+
+
+                        for(int j=0;j<routes.size();++j){
+                            localCounter1=0;
+                            localCounter2=1;
+                            for (int i=0; i<routes.get(j).getCoordinates().size();++i){
+                                while(localCounter2<routes.get(j).getCoordinates().size() && localCounter1<routes.get(j).getCoordinates().size()){
+                                //add the distance for coordinate one to coordinate two and map them to both parts fo the list
+                                organisedPoints[globalCounter1][globalCounter2] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j).getCoordinates().get(localCounter2));
+                                organisedPoints[globalCounter2][globalCounter1] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j).getCoordinates().get(localCounter2));
+                                if((j+1)<routes.size() && localCounter1<routes.get(j+1).getCoordinates().size() && localCounter2<routes.get(j+1).getCoordinates().size()) {
+                                    if (routes.get(j).getCoordinates().get(localCounter1).toString().equals(routes.get(j + 1).getCoordinates().get(localCounter1).toString())) {
+                                        organisedPoints[globalCounter1][globalCounter1 + routes.get(j).getCoordinates().size()] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j + 1).getCoordinates().get(localCounter2));
+                                        organisedPoints[globalCounter1 + routes.get(j).getCoordinates().size()][globalCounter1] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j + 1).getCoordinates().get(localCounter2));
+                                        Log.w("cheese", "points match at: " + localCounter1 + "points compared: " + routes.get(j).getCoordinates().get(localCounter1).toString() + " and: " + routes.get(j+1).getCoordinates().get(localCounter1).toString());
+
+                                        //change the list size to match the number of distances that have to be travelled
+                                        double[][] tempList = organisedPoints.clone();
+                                        organisedPoints = new double[points.size()-matchCounter][points.size()-matchCounter];
+                                        for(int tempCounter=0;tempCounter<tempList.length-1;++tempCounter){
+                                            for(int tempCounter2=0; tempCounter2<tempList.length-1;++tempCounter2){
+                                                organisedPoints[tempCounter][tempCounter2] = tempList[tempCounter][tempCounter2];
+                                            }
+                                        }
+
+                                        ++matchCounter;
+                                        if(localCounter1>0) {
+//                                            --localCounter1;
+//                                            --localCounter2;
+                                            --globalCounter1;
+                                            --globalCounter2;
+                                        }
+                                    }
+                                }
+                                    Log.w("cheese", "size of route"+j+": " + routes.get(j).getCoordinates().size() + " size of i: " + localCounter1+" size of j: "+ localCounter2 + " size of k: "+globalCounter1+" size of l: "
+                                            +globalCounter2+" size of the whole points list: "+ points.size() + " added dist: "+ Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1),
+                                            routes.get(j).getCoordinates().get(localCounter2)) + " due to the points:" + routes.get(j).getCoordinates().get(localCounter1) + " and: "+routes.get(j).getCoordinates().get(localCounter2));
+
+                                //check that the ints dont go too high or there will be an out of bounds error
+                                    ++localCounter1;
+                                    ++localCounter2;
+                                    ++globalCounter1;
+                                    ++globalCounter2;
+
+                                }
+                            }
+                        }
+
+//                        for(){
+////                            Log.w("cheese", "point: " +point);
+////                        }
+
+
+                        //compareRoutes(routes);
+                        String string = "\n";
+
+                for(double[] i: organisedPoints){
+                    for(double j: i){
+                         string +=j;
+                         string += ", ";
+                    }
+                    string += "\n";
+                }
+                Log.w("debug2", "organised points current street: "+ string);
 
                         int numThreads = Runtime.getRuntime().availableProcessors();
                         Log.w("debug", "number of available threads: "+numThreads);
@@ -329,38 +395,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         //atomic integer for thread safe access
                         AtomicInteger numOfCoordsLeft = new AtomicInteger(numOfCoords);
 
-//                        //initialise array by setting values  0
-//                        for(double[] i: organisedPoints){
-//                            for(double j: i){
-//                                j=0;
-//                            }
-//                        }
                         //Log.w("debug", "lat: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLatitude()) + " long: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLongitude()));
 
 
                         Log.w("debug", "number of coords to search for: "+ numOfCoords);
                         //service pool of tasks to execute
-                        ExecutorService service = Executors.newFixedThreadPool(numOfCoords);
-
-
-                        //submit all the tasks using for loop
-                        for(int o=0;o<numOfCoords;++o) {
-                            int finalO = o;
-                            service.submit(() -> {
-                                //reverse geocode each coordinates to find streetnames
-                                searchForLatLng(points.get(numOfCoordsLeft.decrementAndGet()));
-                                Log.w("debug", "thread" + finalO + " num of coords now: "+numOfCoordsLeft);
-                            });
-                            //5 api calls a second so 1000/5 = 200 -make a call every 200ms
-                            SystemClock.sleep(200);
-                        }
-
-                        service.shutdown();
-                        try {
-                            service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+//                        ExecutorService service = Executors.newFixedThreadPool(numOfCoords);
+//
+//
+//                        //submit all the tasks using for loop
+//                        for(int o=0;o<numOfCoords;++o) {
+//                            int finalO = o;
+//                            service.submit(() -> {
+//                                //reverse geocode each coordinates to find streetnames
+//                                searchForLatLng(points.get(numOfCoordsLeft.decrementAndGet()));
+//                                Log.w("debug", "thread" + finalO + " num of coords now: "+numOfCoordsLeft);
+//                            });
+//                            //5 api calls a second so 1000/5 = 200 -make a call every 200ms
+//                            SystemClock.sleep(200);
+//                        }
+//
+//                        service.shutdown();
+//                        try {
+//                            service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
 
 
 
@@ -412,8 +472,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                                { 8, 11, 0, 0, 0, 0, 1, 0, 7 },
 //                                { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
 
+                        ArrayList<Integer> newRoute = new ArrayList<>();
                         //calculate Dijkstra based on the points collected.
-                        //CalcDijkstra.calculate(points, 0);
+                        newRoute = CalcDijkstra.calculate(organisedPoints, 0);
+//                        String printNewRoute= "";
+//                        for(Integer j:newRoute){
+//                            printNewRoute += j + ", ";
+//                        }
+
+                        Random rnd = new Random();
+                        int color;
+                        color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+                        RouteStyle routestyle = RouteStyleBuilder.create()
+                                .withWidth(2.0)
+                                .withFillColor(color)
+                                .withOutlineColor(Color.GRAY).build();
+
+                        //new list of points that relate to current point position in the street
+                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+
+                        //loop for all the points in the street
+                        for(int j=0; j<newRoute.size();++j){
+                            newRoutePoints.add(points.get(newRoute.get(j)));
+                        }
+                        //draw the street
+                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+
+//                        Log.w("debug", "new route: " + printNewRoute);
                         //clearMap();
 
 
@@ -557,24 +642,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
     }
 
-    private void compareRoutes(List<FullRoute> routes){
 
-        Log.w("debug", "number of routes: "+ routes.size());
-        for(int i=0;i<routes.size()-1;++i){
-            for(int j =0; j<routes.get(i).getCoordinates().size()-1;++j){
-                for(int k=0;k<3;++k){
-                    if(i>0) {
-                        //compare all the points of each route and set the distances that match
-                        if (routes.get(i).getCoordinates().get(j) == routes.get(i - 1).getCoordinates().get(j)) {
-                            Log.w("debug", "got here");
-                            if(k>0){
-                                organisedPoints[j][k] = Helper.calculateDistance(routes.get(i).getCoordinates().get(j), routes.get(i).getCoordinates().get(j-1));
-                            }
-                        }
+    private void compareRoutes(List<FullRoute> routes){
+        int j=0;
+        //for every route
+        for(int i=1;i<routes.size();++i) {
+            //for every point in every route
+            //Log.w("cheese", "nother route");
+                while (j < routes.get(i - 1).getCoordinates().size() && j<routes.get(i).getCoordinates().size()) {
+                    Log.w("cheese", "route: " + i + "num of points: " + routes.get(i).getCoordinates().size() + "current point: " + j + " " + routes.get(i).getCoordinates().get(j) +
+                            "route2: " + (i - 1) + "num of points: " + routes.get(i - 1).getCoordinates().size() + "route two point: " + j + " " + routes.get(i-1).getCoordinates().get(j));
+                    if (routes.get(i).getCoordinates().get(j).toString().equals(routes.get(i - 1).getCoordinates().get(j).toString())) {
+                        Log.w("cheese", "this point matches the same point on another route");
                     }
+                    ++j;
+                    //Log.w("cheese", "hey");
                 }
 
-            }
         }
 
     }
@@ -585,11 +669,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (streetnames.get(pointCount).equals(streetnames.get(pointCount -1))) {
                 //add another point to the current street's set of points
                 pointPos.add(pointCount);
-                Log.w("debug", "adding another point: " + pointCount + " for: " + streetnames.get(pointCount));
+                //Log.w("debug", "adding another point: " + pointCount + " for: " + streetnames.get(pointCount));
                 //update or add new streetname and add its points
                 map.put(streetnames.get(pointCount), pointPos);
-                Log.w("debug", "Map adding1: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
-                Log.w("debug2",  "size of the map: " + map.size());
+                //Log.w("debug", "Map adding1: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+                //Log.w("debug2",  "size of the map: " + map.size());
 
 
                 //give the street some colour
@@ -613,8 +697,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                for(int i = 1; i<pointPos.size();++i) {
 //                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(i)), points.get(i-1));
 //                }
-                Log.w("debug", "Map adding2: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
-                Log.w("debug2",  "size of the map: " + map.size());
+                //Log.w("debug", "Map adding2: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+                //Log.w("debug2",  "size of the map: " + map.size());
 
 //                String string = "\n";
 
@@ -654,13 +738,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             //add the first point to the current street's set of points
             pointPos.add(pointCount);
-            Log.w("debug", "adding first point: " + pointCount);
+            //Log.w("debug", "adding first point: " + pointCount);
         }
 
     }
 
     private void newStreetNewColour(int currrentStreet){
-        Log.w("debug", "colouring in: " + streetnames.get(currrentStreet));
+        //Log.w("debug", "colouring in: " + streetnames.get(currrentStreet));
         //loop for every street in the route
             //new color for every street
             Random rnd = new Random();
@@ -684,6 +768,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
 
     }
+
 
 
     private void searchForLatLng(LatLng latLng){

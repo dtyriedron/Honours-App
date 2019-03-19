@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.google.common.util.concurrent.AtomicDouble;
 
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -18,19 +19,23 @@ public class CalcDijkstra {
     private static int index = 0;
 
     private static final int NO_PARENT = -1;
+    static ArrayList<Integer> routeList = new ArrayList<>();
+
 
     // Function that implements Dijkstra's
     // single source shortest path
     // algorithm for a graph represented
     // using adjacency matrix
     // representation
-    public static void calculate(double[][] adjacencyMatrix,
-                                 int startVertex) {
+    public static ArrayList<Integer> calculate(double[][] adjacencyMatrix,
+                                      int startVertex) {
         int nVertices = adjacencyMatrix[0].length;
 
         // shortestDistances[i] will hold the
         // shortest distance from src to i
         double[] shortestDistances = new double[nVertices];
+
+        routeList.clear();
 
         // added[i] will true if vertex i is
         // included / in shortest path tree
@@ -62,6 +67,8 @@ public class CalcDijkstra {
         // Find shortest path for all
         // vertices
         for (int i = 1; i < nVertices; i++) {
+
+
 
 //            atomicDouble.set(Integer.MAX_VALUE);
 //
@@ -131,8 +138,9 @@ public class CalcDijkstra {
 
         Log.w("cheese", "without speed decrease");
         printSolution(startVertex, shortestDistances, parents);
-        Log.w("cheese", " with speed decrease");
-        printSolution(startVertex, speedFactor(shortestDistances), parents);
+        return routeList;
+//        Log.w("cheese", " with speed decrease");
+//        printSolution(startVertex, speedFactor(shortestDistances), parents);
     }
 
 //    private static void minDistIndex(int nVertices, Boolean[] added, double[] shortestDistances, double[][] adjacencyMatrix, int[] parents, int threadNum) {
@@ -176,6 +184,10 @@ public class CalcDijkstra {
                 printer += vertexIndex + " \t\t ";
                 printer += distances[vertexIndex] + "\t\t";
                 printPath(vertexIndex, parents);
+                if(vertexIndex == nVertices-1){
+                    printRoute(vertexIndex,parents);
+                }
+
             }
         }
         Log.w("cheese", printer);
@@ -196,6 +208,21 @@ public class CalcDijkstra {
         }
         printPath(parents[currentVertex], parents);
         printer += currentVertex + " ";
+//        if(currentVertex==parents.length-1){
+//            Log.w("cheese", "currentVertex: " +currentVertex);
+//        }
+    }
+
+    private static void printRoute(int currentVertex,
+                                   int[] parents){
+        if (currentVertex == NO_PARENT)
+        {
+            return;
+        }
+        printRoute(parents[currentVertex], parents);
+        routeList.add(currentVertex);
+
+
     }
 
     public static String getPrinter(){
