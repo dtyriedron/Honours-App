@@ -52,10 +52,13 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +68,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 import static java.lang.String.valueOf;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.toMap;
@@ -127,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.tomtomMap.setMyLocationEnabled(true);
         this.tomtomMap.addOnMapLongClickListener(this);
         this.tomtomMap.getMarkerSettings().setMarkersClustering(true);
-        this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
+        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
         //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
         //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
     }
@@ -310,65 +314,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                         Log.w("debug", "number of routes: "+ routes.size());
                         //organisedPoints = new double[points.size()][3];
-                        organisedPoints = new double[points.size()][points.size()];
-                        //initialise array by setting values  0
-                        for(double[] i: organisedPoints){
-                            for(double j: i){
-                                j=0;
-                            }
-                        }
-                        int localCounter1;
-                        int localCounter2;
-                        int globalCounter1=0;
-                        int globalCounter2=1;
-                        int matchCounter=1;
+//                        //initialise array by setting values  0
+//                        for(double[] i: organisedPoints){
+//                            for(double j: i){
+//                                j=0;
+//                            }
+//                        }
+                        compareRoutes(routes);
 
-
-                        for(int j=0;j<routes.size();++j){
-                            localCounter1=0;
-                            localCounter2=1;
-                            for (int i=0; i<routes.get(j).getCoordinates().size();++i){
-                                while(localCounter2<routes.get(j).getCoordinates().size() && localCounter1<routes.get(j).getCoordinates().size()){
-                                //add the distance for coordinate one to coordinate two and map them to both parts fo the list
-                                organisedPoints[globalCounter1][globalCounter2] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j).getCoordinates().get(localCounter2));
-                                organisedPoints[globalCounter2][globalCounter1] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j).getCoordinates().get(localCounter2));
-                                if((j+1)<routes.size() && localCounter1<routes.get(j+1).getCoordinates().size() && localCounter2<routes.get(j+1).getCoordinates().size()) {
-                                    if (routes.get(j).getCoordinates().get(localCounter1).toString().equals(routes.get(j + 1).getCoordinates().get(localCounter1).toString())) {
-                                        organisedPoints[globalCounter1][globalCounter1 + routes.get(j).getCoordinates().size()] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j + 1).getCoordinates().get(localCounter2));
-                                        organisedPoints[globalCounter1 + routes.get(j).getCoordinates().size()][globalCounter1] = Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1), routes.get(j + 1).getCoordinates().get(localCounter2));
-                                        Log.w("cheese", "points match at: " + localCounter1 + "points compared: " + routes.get(j).getCoordinates().get(localCounter1).toString() + " and: " + routes.get(j+1).getCoordinates().get(localCounter1).toString());
-
-                                        //change the list size to match the number of distances that have to be travelled
-                                        double[][] tempList = organisedPoints.clone();
-                                        organisedPoints = new double[points.size()-matchCounter][points.size()-matchCounter];
-                                        for(int tempCounter=0;tempCounter<tempList.length-1;++tempCounter){
-                                            for(int tempCounter2=0; tempCounter2<tempList.length-1;++tempCounter2){
-                                                organisedPoints[tempCounter][tempCounter2] = tempList[tempCounter][tempCounter2];
-                                            }
-                                        }
-
-                                        ++matchCounter;
-                                        if(localCounter1>0) {
-//                                            --localCounter1;
-//                                            --localCounter2;
-                                            --globalCounter1;
-                                            --globalCounter2;
-                                        }
-                                    }
-                                }
-                                    Log.w("cheese", "size of route"+j+": " + routes.get(j).getCoordinates().size() + " size of i: " + localCounter1+" size of j: "+ localCounter2 + " size of k: "+globalCounter1+" size of l: "
-                                            +globalCounter2+" size of the whole points list: "+ points.size() + " added dist: "+ Helper.calculateDistance(routes.get(j).getCoordinates().get(localCounter1),
-                                            routes.get(j).getCoordinates().get(localCounter2)) + " due to the points:" + routes.get(j).getCoordinates().get(localCounter1) + " and: "+routes.get(j).getCoordinates().get(localCounter2));
-
-                                //check that the ints dont go too high or there will be an out of bounds error
-                                    ++localCounter1;
-                                    ++localCounter2;
-                                    ++globalCounter1;
-                                    ++globalCounter2;
-
-                                }
-                            }
-                        }
 
 //                        for(){
 ////                            Log.w("cheese", "point: " +point);
@@ -376,16 +329,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
                         //compareRoutes(routes);
-                        String string = "\n";
-
-                for(double[] i: organisedPoints){
-                    for(double j: i){
-                         string +=j;
-                         string += ", ";
-                    }
-                    string += "\n";
-                }
-                Log.w("debug2", "organised points current street: "+ string);
 
                         int numThreads = Runtime.getRuntime().availableProcessors();
                         Log.w("debug", "number of available threads: "+numThreads);
@@ -472,9 +415,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                                { 8, 11, 0, 0, 0, 0, 1, 0, 7 },
 //                                { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
 
+
                         ArrayList<Integer> newRoute = new ArrayList<>();
                         //calculate Dijkstra based on the points collected.
-                        newRoute = CalcDijkstra.calculate(organisedPoints, 0);
+                        newRoute = CalcDijkstra.calculate(compareRoutes(routes), 0);
 //                        String printNewRoute= "";
 //                        for(Integer j:newRoute){
 //                            printNewRoute += j + ", ";
@@ -507,11 +451,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-                        MainActivity.this.runOnUiThread(() -> {
-                            ConnectToDB connectToDB = new ConnectToDB();
-                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
-                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
-                        });
+//                        MainActivity.this.runOnUiThread(() -> {
+//                            ConnectToDB connectToDB = new ConnectToDB();
+//                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
+//                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
+//                        });
 
                         //loop through all of the points taken from all of the routes to sort them into closest to furthest away from the starting point
 //                        DisplayMap<Integer, Double> unsortedlatlngs = new HashMap<>();
@@ -643,25 +587,88 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    private void compareRoutes(List<FullRoute> routes){
-        int j=0;
-        //for every route
-        for(int i=1;i<routes.size();++i) {
-            //for every point in every route
-            //Log.w("cheese", "nother route");
-                while (j < routes.get(i - 1).getCoordinates().size() && j<routes.get(i).getCoordinates().size()) {
-                    Log.w("cheese", "route: " + i + "num of points: " + routes.get(i).getCoordinates().size() + "current point: " + j + " " + routes.get(i).getCoordinates().get(j) +
-                            "route2: " + (i - 1) + "num of points: " + routes.get(i - 1).getCoordinates().size() + "route two point: " + j + " " + routes.get(i-1).getCoordinates().get(j));
-                    if (routes.get(i).getCoordinates().get(j).toString().equals(routes.get(i - 1).getCoordinates().get(j).toString())) {
-                        Log.w("cheese", "this point matches the same point on another route");
-                    }
-                    ++j;
-                    //Log.w("cheese", "hey");
-                }
+    private double[][] compareRoutes(List<FullRoute> routes){
 
+        //map of points and their neighbours
+        Map<LatLng, ArrayList<LatLng>> pointsAndNeighbours = new LinkedHashMap<>();
+
+        //list of points that can be adapted to our needs
+        ArrayList<LatLng> pointList = new ArrayList<>();
+
+
+        for(FullRoute r: routes){
+            for(LatLng c: r.getCoordinates()){
+                pointList.add(c);
+                pointsAndNeighbours.put(c, new ArrayList<>());
+            }
         }
 
+        //prepare the points for dijkstra
+        double [][] dijkstraPoints = new double[pointList.size()][pointList.size()];
+
+        for (int i = 0; i < routes.size(); ++i) {
+           // Log.w("points", "route: "+i + "size: "+routes.get(i).getCoordinates().size());
+
+            //for every point within every route
+            for (int j = 0; j < routes.get(i).getCoordinates().size(); j++)
+            {
+                ArrayList neighbours = pointsAndNeighbours.get(routes.get(i).getCoordinates().get(j));
+
+                //if it is within the limits of the array and its not already in the map!
+                if(j+1<routes.get(i).getCoordinates().size() && !neighbours.contains(routes.get(i).getCoordinates().get(j+1)))
+                {
+                    //add the next point as first neighbour
+                    neighbours.add(routes.get(i).getCoordinates().get(j + 1));
+                }
+                else if((j+1>=routes.get(i).getCoordinates().size())&& !neighbours.contains(routes.get(i).getCoordinates().get(j-1)))
+                    {
+                    //add the next point as first neighbours
+                    neighbours.add(routes.get(i).getCoordinates().get(j - 1));
+                }
+
+                if(i+1<routes.size())
+                {
+                    //start on the next route
+                    for (int y = i + 1; y < routes.size(); ++y)
+                    {
+                        //start at the first routes neighbour
+                        for (int l = j; l < routes.get(y).getCoordinates().size(); ++l)
+                        {
+                            //check the current point with all the points to find matches
+                            if (routes.get(i).getCoordinates().get(j).toString().equals(routes.get(y).getCoordinates().get(l).toString()))
+                            {
+                                //add all the neighbours of the points that match with the original point
+                                if (l + 1 < routes.get(y).getCoordinates().size())
+                                {
+                                    //add point beyond match as a neighbour
+                                    neighbours.add(routes.get(y).getCoordinates().get(l + 1));
+                                    //Log.w("points", "adding point to neighbours: " + routes.get(y).getCoordinates().get(l + 1));
+                                } else if((j+1>=routes.get(i).getCoordinates().size()))
+                                    {
+                                    //if last point then get the point that links to it previously
+                                    //add point previous to match as a neighbour
+                                    neighbours.add(routes.get(y).getCoordinates().get(l - 1));
+                                    //Log.w("points", "adding last point to neighbours: " + routes.get(y).getCoordinates().get(l - 1));
+                                }
+
+                            }
+                        }
+                    }
+                }
+                //add the point and its neighbours
+                pointsAndNeighbours.put(routes.get(i).getCoordinates().get(j), neighbours);
+            }
+        }
+        for(int i=0;i<pointList.size();i++){
+            ArrayList<LatLng> value = pointsAndNeighbours.get(pointList.get(i));
+            for (int j = 0; j < value.size(); j++) {
+                dijkstraPoints[i][pointList.indexOf(value.get(j))] = pointList.get(i).toLocation().distanceTo(value.get(j).toLocation());
+                dijkstraPoints[pointList.indexOf(value.get(j))][i] = pointList.get(i).toLocation().distanceTo(value.get(j).toLocation());
+            }
+        }
+        return dijkstraPoints;
     }
+
 
     private void collateStreetPoints(){
         //check if any streetnames match each other
@@ -677,7 +684,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
                 //give the street some colour
-                newStreetNewColour(pointCount);
+                //newStreetNewColour(pointCount);
 //                String string = "\n";
 //                for(double[] i: organisedPoints){
 //                    for(double j: i){
@@ -712,7 +719,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                Log.w("debug2", "organised points current street: "+ string);
 
                 //give the street some colour
-                newStreetNewColour(pointCount);
+                //newStreetNewColour(pointCount);
 
 //                //check if its the last streetname and therefore needs to added.
 //                if((pointCount == points.size()-1)){
@@ -769,6 +776,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    private void colourmatched(LatLng p1, LatLng p2){
+        //new color for every street
+        Random rnd = new Random();
+        int color;
+        color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        RouteStyle routestyle = RouteStyleBuilder.create()
+                .withWidth(2.0)
+                .withFillColor(color)
+                .withOutlineColor(Color.GRAY).build();
+
+        //new list of points that relate to current point position in the street
+        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+        newRoutePoints.add(p1);
+        newRoutePoints.add(p2);
+
+        //draw the street
+        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+    }
+
 
 
     private void searchForLatLng(LatLng latLng){
@@ -793,7 +819,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             // Log.w("debug", "streetnames added: " + streetnames.get(pointCount) + " " + pointCount);
 
                             //add all the points up that relate top that street
-                            collateStreetPoints();
+                            //collateStreetPoints();
                             pointCount++;
                         }
                         else{
@@ -903,51 +929,51 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 */
 
 
-    private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
-        return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
-            @Override
-            public void onBindView(View view, final Marker marker, BaseMarkerBalloon baseMarkerBalloon){
-                Button btnAddWayPoint = view.findViewById(R.id.btn_balloon_waypoint);
-                final TextView textViewPoiName = view.findViewById(R.id.textview_balloon_poiname);
-                TextView textViewPoiAddress = view.findViewById(R.id.textview_balloon_poiaddress);
-                textViewPoiName.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.poi_name_key)));
-                textViewPoiAddress.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.address_key)));
-                btnAddWayPoint.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(View v){
-                        setWayPoint(marker);
-                        saySomething(textViewPoiName.getText().toString().trim(), 1);
-                    }
-                    private void setWayPoint(Marker marker){
-                        wayPointPosition = marker.getPosition();
-
-                        tomtomMap.clearRoute();
-                        drawRouteWithWayPoints(departurePosition, destinationPosition, new LatLng[] {wayPointPosition});
-                        marker.deselect();
-                    }
-                });
-            }
-        };
-    }
-
-    private SingleLayoutBalloonViewAdapter createCustomRoute1Balloon() {
-        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
-            @Override
-            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
-                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
-                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag1_name)));
-            }
-        };
-    }
-    private SingleLayoutBalloonViewAdapter createCustomRoute2Balloon() {
-        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
-            @Override
-            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
-                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
-                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag2_name)));
-            }
-        };
-    }
+//    private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
+//        return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
+//            @Override
+//            public void onBindView(View view, final Marker marker, BaseMarkerBalloon baseMarkerBalloon){
+//                Button btnAddWayPoint = view.findViewById(R.id.btn_balloon_waypoint);
+//                final TextView textViewPoiName = view.findViewById(R.id.textview_balloon_poiname);
+//                TextView textViewPoiAddress = view.findViewById(R.id.textview_balloon_poiaddress);
+//                textViewPoiName.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.poi_name_key)));
+//                textViewPoiAddress.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.address_key)));
+//                btnAddWayPoint.setOnClickListener(new View.OnClickListener(){
+//                    @Override
+//                    public void onClick(View v){
+//                        setWayPoint(marker);
+//                        saySomething(textViewPoiName.getText().toString().trim(), 1);
+//                    }
+//                    private void setWayPoint(Marker marker){
+//                        wayPointPosition = marker.getPosition();
+//
+//                        tomtomMap.clearRoute();
+//                        drawRouteWithWayPoints(departurePosition, destinationPosition, new LatLng[] {wayPointPosition});
+//                        marker.deselect();
+//                    }
+//                });
+//            }
+//        };
+//    }
+//
+//    private SingleLayoutBalloonViewAdapter createCustomRoute1Balloon() {
+//        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
+//            @Override
+//            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
+//                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
+//                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag1_name)));
+//            }
+//        };
+//    }
+//    private SingleLayoutBalloonViewAdapter createCustomRoute2Balloon() {
+//        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
+//            @Override
+//            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
+//                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
+//                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag2_name)));
+//            }
+//        };
+//    }
 
     //text to speech
     public void onInit(int status) {

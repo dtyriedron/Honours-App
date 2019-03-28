@@ -172,7 +172,7 @@ public class CalcDijkstra {
                                       int[] parents)
     {
         int nVertices = distances.length;
-        printer = "Vertex\t Distance\tPath";
+        printer = "com.example.a40203.tomtommapexample.Vertex\t Distance\tPath";
 
         for (int vertexIndex = 0;
              vertexIndex < nVertices;
@@ -234,9 +234,9 @@ public class CalcDijkstra {
         Random rand = new Random();
 
         //the percentage of speed that the car is decreased by in various situations
-        double speedBumpDecrease = 0.25;
+        double speedBumpDecrease = 0.5;
         double trafficLightDecrease = 0.5;
-        double pedestrianDecrease = 0.1;
+        double pedestrianDecrease = 0.9;
 
         boolean speedBump;
         boolean trafficLight;
@@ -245,9 +245,9 @@ public class CalcDijkstra {
         for(int i=0; i<distances.length;++i){
 
             //the chance of the car encountering each speed factor
-            speedBump = rand.nextDouble() <=0.3;
-            trafficLight = rand.nextDouble() <= 0.6;
-            pedestrian = rand.nextDouble() <= 0.8;
+            speedBump = rand.nextDouble() <=0.05;
+            trafficLight = rand.nextDouble() <= 0.3;
+            pedestrian = rand.nextDouble() <= 0.1;
 
             if(speedBump){
                 distances[i] = distances[i] * speedBumpDecrease;

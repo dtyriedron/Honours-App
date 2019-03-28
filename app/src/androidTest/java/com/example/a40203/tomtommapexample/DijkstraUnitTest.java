@@ -3,6 +3,9 @@ package com.example.a40203.tomtommapexample;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
+import com.tomtom.online.sdk.common.location.LatLng;
+import com.tomtom.online.sdk.map.Route;
+import com.tomtom.online.sdk.routing.data.FullRoute;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +42,7 @@ public class DijkstraUnitTest {
 
         CalcDijkstra.calculate(adjacencyMatrix,0);
 
-        String output = "Vertex  Distance   Path\n" +
+        String output = "com.example.a40203.tomtommapexample.Vertex  Distance   Path\n" +
                 "0 -> 1       4.0        0 1 \n" +
                 "0 -> 2       12.0       0 1 2 \n" +
                 "0 -> 3       19.0       0 1 2 3 \n" +
