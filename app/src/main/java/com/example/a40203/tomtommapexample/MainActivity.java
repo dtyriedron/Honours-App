@@ -2,17 +2,14 @@ package com.example.a40203.tomtommapexample;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.TextView;
 import android.widget.Toast;
 import com.google.common.base.Optional;
 import com.tomtom.online.sdk.common.location.LatLng;
@@ -26,7 +23,6 @@ import com.tomtom.online.sdk.map.Route;
 import com.tomtom.online.sdk.map.RouteBuilder;
 import com.tomtom.online.sdk.map.RouteStyle;
 import com.tomtom.online.sdk.map.RouteStyleBuilder;
-import com.tomtom.online.sdk.map.SingleLayoutBalloonViewAdapter;
 import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.map.TomtomMapCallback;
 import com.tomtom.online.sdk.map.model.MapTilesType;
@@ -35,7 +31,6 @@ import com.tomtom.online.sdk.routing.RoutingApi;
 import com.tomtom.online.sdk.routing.data.FullRoute;
 import com.tomtom.online.sdk.routing.data.RouteQuery;
 import com.tomtom.online.sdk.routing.data.RouteQueryBuilder;
-import com.tomtom.online.sdk.routing.data.RouteResult;
 import com.tomtom.online.sdk.routing.data.RouteType;
 import com.tomtom.online.sdk.search.OnlineSearchApi;
 import com.tomtom.online.sdk.search.SearchApi;
@@ -47,980 +42,887 @@ import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchRe
 import com.tomtom.online.sdk.traffic.OnlineTrafficApi;
 import com.tomtom.online.sdk.traffic.TrafficApi;
 
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 import static java.lang.String.valueOf;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.toMap;
+import android.Manifest;
+        import android.app.DialogFragment;
+        import android.content.Context;
+        import android.content.Intent;
+        import android.content.pm.PackageManager;
+        import android.location.Location;
+        import android.os.Bundle;
+        import android.os.Handler;
+        import android.support.annotation.NonNull;
+        import android.support.v4.app.ActivityCompat;
+        import android.support.v7.app.ActionBar;
+        import android.support.v7.app.AppCompatActivity;
+        import android.support.v7.widget.Toolbar;
+        import android.text.Editable;
+        import android.text.TextWatcher;
+        import android.text.format.DateFormat;
+        import android.util.Log;
+        import android.view.Menu;
+        import android.view.MenuItem;
+        import android.view.View;
+        import android.view.inputmethod.InputMethodManager;
+        import android.widget.AdapterView;
+        import android.widget.ArrayAdapter;
+        import android.widget.AutoCompleteTextView;
+        import android.widget.Button;
+        import android.widget.ImageButton;
+        import android.widget.TextView;
+        import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, TomtomMapCallback.OnMapLongClickListener, TextToSpeech.OnInitListener {
+        import com.google.android.gms.location.LocationRequest;
+        import com.tomtom.online.sdk.common.location.LatLng;
+        import com.tomtom.online.sdk.common.permission.AndroidPermissionChecker;
+        import com.tomtom.online.sdk.common.permission.PermissionChecker;
+        import com.tomtom.online.sdk.location.LocationSource;
+        import com.tomtom.online.sdk.location.LocationSourceFactory;
+        import com.tomtom.online.sdk.location.LocationUpdateListener;
+        import com.tomtom.online.sdk.routing.data.TravelMode;
+        import com.tomtom.online.sdk.search.OnlineSearchApi;
+        import com.tomtom.online.sdk.search.SearchApi;
+        import com.tomtom.online.sdk.search.data.fuzzy.FuzzySearchQueryBuilder;
+        import com.tomtom.online.sdk.search.data.fuzzy.FuzzySearchResponse;
+        import com.tomtom.online.sdk.search.data.fuzzy.FuzzySearchResult;
+        import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderFullAddress;
+        import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchQueryBuilder;
+        import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchResponse;
 
-    private TomtomMap tomtomMap;
-    private RoutingApi routingApi;
+        import java.util.ArrayList;
+        import java.util.Calendar;
+        import java.util.HashMap;
+        import java.util.List;
+        import java.util.Locale;
+        import java.util.Map;
+
+        import io.reactivex.android.schedulers.AndroidSchedulers;
+        import io.reactivex.observers.DisposableSingleObserver;
+        import io.reactivex.schedulers.Schedulers;
+
+public class MainActivity extends AppCompatActivity implements LocationUpdateListener {
+
+    private static final int PREPARATION_FIRST_OPT = 0;
+    private static final int PREPARATION_SECOND_OPT = 5;
+    private static final int PREPARATION_THIRD_OPT = 10;
+
+    private static final LatLng DEFAULT_DEPARTURE_LATLNG = new LatLng(52.376368, 4.908113);
+    private static final LatLng DEFAULT_DESTINATION_LATLNG = new LatLng(52.3076865, 4.767424099999971);
+    private static final String TIME_PICKER_DIALOG_TAG = "TimePicker";
+    private static final String LOG_TAG = "MainActivity";
+    private static final int ARRIVE_TIME_AHEAD_HOURS = 5;
+    private static final int AUTOCOMPLETE_SEARCH_DELAY_MILLIS = 600;
+    private static final int AUTOCOMPLETE_SEARCH_THRESHOLD = 3;
+    private static final String TIME_24H_FORMAT = "HH:mm";
+    private static final String TIME_12H_FORMAT = "hh:mm";
+    private static final int SEARCH_FUZZY_LVL_MIN = 2;
+    private static final int PERMISSION_REQUEST_LOCATION = 0;
+
+    private Calendar calArriveAt;
     private SearchApi searchApi;
-    private TrafficApi trafficApi;
-    private Route route;
-    private LatLng departurePosition;
-    private LatLng destinationPosition;
-    private LatLng wayPointPosition;
-    private Icon departureIcon;
-    private Icon destinationIcon;
-    private ImageButton btnSearch;
-    private EditText editTextPois;
-    private ArrayList<String> streetnames;
-    private ArrayList<LatLng> points;
-    private double[][] organisedPoints;
-    int pointCount = 0;
-    //map of different streetnames and their positions in the original streetname array
-    Map<String, ArrayList<Integer>> map;
-    ArrayList<Integer> pointPos;
-    //text to speech
-    TextToSpeech mTTS = null;
-    private final int ACT_CHECK_TTS_DATA = 1000;
-    private final int REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE = 2000;
-    private int permissionCount = 0;
-    private String mAudioFilename = "";
-    private final String mUtteranceID = "totts";
-    //colours
-    private int[] routeColours;
-    //travelTime
-    private int[] travelTime;
-
-    final int MAX_DETOUR_TIME = 10000;
-    final int QUERY_LIMIT = 100;
+    private LocationSource locationSource;
+    private TextView textViewArriveAtHour;
+    private TextView textViewArriveAtAmPm;
+    private TravelMode travelModeSelected = TravelMode.CAR;
+    private long arrivalTimeInMillis;
+    private AutoCompleteTextView atvDepartureLocation;
+    private AutoCompleteTextView atvDestinationLocation;
+    private Handler searchTimerHandler = new Handler();
+    private Runnable searchRunnable;
+    private ArrayAdapter<String> searchAdapter;
+    private List<String> searchAutocompleteList;
+    private Map<String, LatLng> searchResultsMap;
+    private LatLng latLngCurrentPosition;
+    private LatLng latLngDeparture;
+    private LatLng latLngDestination;
+    private ImageButton buttonByWhatTaxi;
+    private ImageButton buttonByWhatCar;
+    private ImageButton buttonByWhatOnFoot;
+    private Button buttonPreparationFirst;
+    private Button buttonPreparationSecond;
+    private Button buttonPreparationThird;
+    private int preparationTimeSelected = PREPARATION_FIRST_OPT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //showHelpOnFirstRun();
         initTomTomServices();
-        initUIViews();
-        setupUIViewListeners();
-        //nitColours();
-
-        // Check to see if we have TTS voice data
-        Intent ttsIntent = new Intent();
-        ttsIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-        startActivityForResult(ttsIntent, ACT_CHECK_TTS_DATA);
+        //initToolbarSettings();
+        initSearchFieldsWithDefaultValues();
+        initWhereSection();
+        //initByWhenSection();
+        //initByWhatSection();
+        //initPreparationSection();
+        initStartSection();
     }
 
     @Override
-    public void onMapReady(@NonNull final TomtomMap tomtomMap) {
-        this.tomtomMap = tomtomMap;
-        this.tomtomMap.getUiSettings().setMapTilesType(MapTilesType.VECTOR);
-        this.tomtomMap.setMyLocationEnabled(true);
-        this.tomtomMap.addOnMapLongClickListener(this);
-        this.tomtomMap.getMarkerSettings().setMarkersClustering(true);
-        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
-        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
-        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
-    }
-    public void clearMap(){
-        tomtomMap.clear();
-        departurePosition = null;
-        destinationPosition = null;
-        route = null;
-        points.clear();
-        streetnames.clear();
-        pointPos.clear();
-        map.clear();
-        pointCount = 0;
-        organisedPoints = null;
-    }
-
-    @Override
-    public void onMapLongClick(@NonNull LatLng latLng) {
-        if(isDeparturePositionSet() && isDestinationPositionSet()){
-            clearMap();
-        } else {
-            handleLongClick(latLng);
+    protected void onResume() {
+        super.onResume();
+        //resetDaysInArriveAt();
+        PermissionChecker checker = AndroidPermissionChecker.createLocationChecker(this);
+        if(!checker.ifNotAllPermissionGranted()) {
+            locationSource.activate();
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults){
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        this.tomtomMap.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    public void onLocationChanged(Location location) {
+        if (latLngCurrentPosition == null) {
+            latLngCurrentPosition = new LatLng(location);
+            locationSource.deactivate();
+        }
+    }
+
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.menu_toolbar, menu);
+//        return true;
+//    }
+
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        int selectedItem = item.getItemId();
+//        if (selectedItem == R.id.toolbar_menu_help) {
+//            showHelpActivity();
+//            return true;
+//        }
+//
+//        return super.onOptionsItemSelected(item);
+//    }
+
+//    public Calendar getCalArriveAt() {
+//        return calArriveAt;
+//    }
+
+    private void initTomTomServices() {
+        searchApi = OnlineSearchApi.create(this);
+    }
+
+//    private void initToolbarSettings() {
+//        Toolbar toolbar = findViewById(R.id.custom_toolbar);
+//        setSupportActionBar(toolbar);
+//
+//        ActionBar actionBar = getSupportActionBar();
+//        if (actionBar != null) {
+//            actionBar.setDisplayHomeAsUpEnabled(false);
+//            actionBar.setDisplayShowHomeEnabled(false);
+//            actionBar.setDisplayShowTitleEnabled(false);
+//        }
+//    }
+
+    private void initSearchFieldsWithDefaultValues() {
+        atvDepartureLocation = findViewById(R.id.atv_main_departure_location);
+        atvDestinationLocation = findViewById(R.id.atv_main_destination_location);
+        initLocationSource();
+        initDepartureWithDefaultValue();
+        initDestinationWithDefaultValue();
+    }
+
+    private void initLocationSource() {
+        PermissionChecker permissionChecker = AndroidPermissionChecker.createLocationChecker(this);
+        if(permissionChecker.ifNotAllPermissionGranted()) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_LOCATION);
+        }
+        LocationSourceFactory locationSourceFactory = new LocationSourceFactory();
+        locationSource = locationSourceFactory.createDefaultLocationSource(this, this,  LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setFastestInterval(2000)
+                .setInterval(5000));
     }
 
     @Override
-    public void onPointerCaptureChanged(boolean hasCapture) {
-
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case PERMISSION_REQUEST_LOCATION:
+                if(grantResults.length >= 2 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                    locationSource.activate();
+                }
+                else {
+                    Toast.makeText(this, R.string.location_permissions_denied, Toast.LENGTH_SHORT).show();
+                }
+                break;
+        }
     }
 
-    private void initTomTomServices() {
-        MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
-        mapFragment.getAsyncMap(this);
-        searchApi = OnlineSearchApi.create(this);
-        routingApi = OnlineRoutingApi.create(this);
-        trafficApi = OnlineTrafficApi.create(this);
+    private void initDepartureWithDefaultValue() {
+        latLngDeparture = DEFAULT_DEPARTURE_LATLNG;
+        setAddressForLocation(latLngDeparture, atvDepartureLocation);
     }
 
+    private void initDestinationWithDefaultValue() {
+        latLngDestination = DEFAULT_DESTINATION_LATLNG;
+        setAddressForLocation(latLngDestination, atvDestinationLocation);
+    }
 
-//    private void initColours(){
-//        routeColours = new int[4];
-//        routeColours[0] = Color.rgb(255,237,160);
-//        routeColours[1] = Color.rgb(254,178, 76);
-//        routeColours[2] = Color.rgb(240, 59, 32);
-//        routeColours[3] = Color.rgb(230,55,30);
+//    private void showHelpOnFirstRun() {
+//        String sharedPreferenceName = getString(R.string.shared_preference_name);
+//        String sharedPreferenceIsFirstRun = getString(R.string.shared_preference_first_run);
+//        Boolean isFirstRun = getSharedPreferences(sharedPreferenceName, MODE_PRIVATE)
+//                .getBoolean(sharedPreferenceIsFirstRun, true);
+//        if (isFirstRun) {
+//            showHelpActivity();
+//            getSharedPreferences(sharedPreferenceName, MODE_PRIVATE).edit()
+//                    .putBoolean(sharedPreferenceIsFirstRun, false).apply();
+//        }
 //    }
 
-    private void initUIViews() {
-        departureIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_departure);
-        destinationIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_map_route_destination);
-        btnSearch = findViewById(R.id.btn_main_poisearch);
-        editTextPois = findViewById(R.id.edittext_main_poisearch);
+    private void initWhereSection() {
+        searchAutocompleteList = new ArrayList<>();
+        searchResultsMap = new HashMap<>();
+        searchAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, searchAutocompleteList);
+        ImageButton btnDepartureClear = findViewById(R.id.button_departure_clear);
+        ImageButton btnDestinationClear = findViewById(R.id.button_destination_clear);
+
+        setTextWatcherToAutoCompleteField(atvDepartureLocation, btnDepartureClear);
+        setClearButtonToAutocompleteField(atvDepartureLocation, btnDepartureClear);
+        setTextWatcherToAutoCompleteField(atvDestinationLocation, btnDestinationClear);
+        setClearButtonToAutocompleteField(atvDestinationLocation, btnDestinationClear);
     }
 
-    private void setupUIViewListeners() {
-        View.OnClickListener searchButtonListener = getSearchButtonListener();
-        btnSearch.setOnClickListener(searchButtonListener);
-        //View.OnClickListener trafficButtonListener = getTrafficButtonListener();
-        //btnTrafficList.setOnClickListener(trafficButtonListener);
-    }
-
-//    private void getLocation(){
-////        Icon activeIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_markedlocation);
-////        Icon inactiveIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.arrow_down);
-////        ChevronBuilder chevronBuilder = ChevronBuilder.create(activeIcon, inactiveIcon);
-////        Chevron chevron = tomtomMap.getDrivingSettings().addChevron(chevronBuilder);
-////        tomtomMap.getDrivingSettings().startTracking(chevron);
-////        chevron.getLocation();
-////        tomtomMap.getDrivingSettings().stopTracking();
-//    }
-
-
-    private void handleLongClick(@NonNull LatLng latLng){
-        searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
-        .subscribeOn(Schedulers.io())
-        .observeOn(AndroidSchedulers.mainThread())
-        .subscribe(new DisposableSingleObserver<ReverseGeocoderSearchResponse>() {
+    private void setTextWatcherToAutoCompleteField(final AutoCompleteTextView autoCompleteTextView, final ImageButton imageButton) {
+        autoCompleteTextView.setAdapter(searchAdapter);
+        autoCompleteTextView.addTextChangedListener(new BaseTextWatcher() {
             @Override
-            public void onSuccess(ReverseGeocoderSearchResponse response){
-                processResponse(response);
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (searchTimerHandler != null) {
+                    searchTimerHandler.removeCallbacks(searchRunnable);
+                }
             }
 
             @Override
-            public void onError(Throwable e){
-                handleApiError(e);
-            }
-
-            private void processResponse(ReverseGeocoderSearchResponse response){
-                if(response.hasResults()){
-                    processFirstResult(response.getAddresses().get(0).getPosition());
-                }
-                else{
-                    Toast.makeText(MainActivity.this, getString(R.string.geocode_no_results), Toast.LENGTH_SHORT).show();
-                }
-            }
-            private void processFirstResult(LatLng geocodedPosition){
-                if(!isDeparturePositionSet()){
-                    setAndDisplayDeparturePosition(geocodedPosition);
-                } else{
-                    points = new ArrayList<>();
-                    streetnames = new ArrayList<>();
-                    pointPos = new ArrayList<>();
-                    map = new HashMap<>();
-                    destinationPosition = geocodedPosition;
-                    tomtomMap.removeMarkers();
-                    drawRoute(departurePosition, destinationPosition);
+            public void afterTextChanged(final Editable s) {
+                if (s.length() > 0) {
+                    imageButton.setVisibility(View.VISIBLE);
+                    if (s.length() >= AUTOCOMPLETE_SEARCH_THRESHOLD) {
+                        searchRunnable = new Runnable() {
+                            @Override
+                            public void run() {
+                                searchAddress(s.toString(), autoCompleteTextView);
+                            }
+                        };
+                        searchAdapter.clear();
+                        searchTimerHandler.postDelayed(searchRunnable, AUTOCOMPLETE_SEARCH_DELAY_MILLIS);
+                    }
+                } else {
+                    imageButton.setVisibility(View.INVISIBLE);
                 }
             }
-
-            private void setAndDisplayDeparturePosition(LatLng geocodedPosition){
-                departurePosition = geocodedPosition;
-                createMarkerIfNotPresent(departurePosition, departureIcon);
+        });
+        autoCompleteTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String item = (String) parent.getItemAtPosition(position);
+                if (autoCompleteTextView == atvDepartureLocation) {
+                    latLngDeparture = searchResultsMap.get(item);
+                } else if (autoCompleteTextView == atvDestinationLocation) {
+                    latLngDestination = searchResultsMap.get(item);
+                }
+                hideKeyboard(view);
             }
         });
     }
 
-    private boolean isDestinationPositionSet(){
-        return destinationPosition != null;
-    }
-
-    private boolean isDeparturePositionSet(){
-        return departurePosition != null;
-    }
-
-    private void handleApiError(Throwable e){
-        Toast.makeText(MainActivity.this, getString(R.string.api_response_error, e.getLocalizedMessage()), Toast.LENGTH_LONG).show();
-    }
-
-    private RouteQuery createRouteQuery(LatLng start, LatLng stop, LatLng[] wayPoints){
-        //return (wayPoints != null) ?
-                return new RouteQueryBuilder(start, stop).withRouteType(RouteType.FASTEST);
-        //new RouteQueryBuilder(start, stop).withWayPoints(wayPoints).withRouteType(RouteType.FASTEST)
-    //:           new RouteQueryBuilder(start, stop).withRouteType(RouteType.FASTEST);
-    }
-
-    private void drawRoute(LatLng start, LatLng stop){
-        wayPointPosition = null;
-        drawRouteWithWayPoints(start, stop, null);
-    }
-
-    private void drawRouteWithWayPoints(LatLng start, LatLng stop, LatLng[] wayPoints){
-        RouteQuery routeQuery = createRouteQuery(start, stop, wayPoints).withMaxAlternatives(9);
-        routingApi.planRoute(routeQuery)
+    private void searchAddress(final String searchWord, final AutoCompleteTextView autoCompleteTextView) {
+        searchApi.search(new FuzzySearchQueryBuilder(searchWord)
+                .withLanguage(Locale.getDefault().toLanguageTag())
+                .withTypeAhead(true)
+                .withMinFuzzyLevel(SEARCH_FUZZY_LVL_MIN)) //.build()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new DisposableSingleObserver<RouteResult>() {
+                .subscribe(new DisposableSingleObserver<FuzzySearchResponse>() {
                     @Override
-                    public void onSuccess(RouteResult routeResult){
-                        displayRoutes(routeResult.getRoutes());
-                        tomtomMap.displayRoutesOverview();
-                        //createAndDisplayCustomTag1(routeResult);
-                        //createAndDisplayCustomTag2(routeResult);
+                    public void onSuccess(FuzzySearchResponse fuzzySearchResponse) {
+                        if (!fuzzySearchResponse.getResults().isEmpty()) {
+                            searchAutocompleteList.clear();
+                            searchResultsMap.clear();
+                            if (autoCompleteTextView == atvDepartureLocation && latLngCurrentPosition != null) {
+                                String currentLocationTitle = getString(R.string.main_current_position);
+                                searchAutocompleteList.add(currentLocationTitle);
+                                searchResultsMap.put(currentLocationTitle, latLngCurrentPosition);
+                            }
+                            for (FuzzySearchResult result : fuzzySearchResponse.getResults()) {
+                                String addressString = result.getAddress().getFreeformAddress();
+                                searchAutocompleteList.add(addressString);
+                                searchResultsMap.put(addressString, result.getPosition());
+                            }
+                            searchAdapter.clear();
+                            searchAdapter.addAll(searchAutocompleteList);
+                            searchAdapter.getFilter().filter("");
+                        }
                     }
 
-                    private void displayRoutes(List<FullRoute> routes) {
-                        //travelTime = new int[2];
-                        //Random rnd = new Random();
-                        //prepare to organise the points for dijkstra
-
-                        for (int i = 0; i<routes.size();++i) {
-
-                            //color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-//                            RouteStyle routestyle = RouteStyleBuilder.create()
-//                                    .withWidth(2.0)
-//                                    .withFillColor(color)
-//                                    .withOutlineColor(Color.GRAY).build();
-//                            route = tomtomMap.addRoute(new RouteBuilder(
-//                                    routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
-
-                            points.addAll(routes.get(i).getCoordinates());
-
-                            //route = tomtomMap.addRoute(new RouteBuilder(routes.get(i).getCoordinates()).startIcon(departureIcon).endIcon(destinationIcon));
-
-                        }
-                        Log.w("debug", "number of routes: "+ routes.size());
-                        //organisedPoints = new double[points.size()][3];
-//                        //initialise array by setting values  0
-//                        for(double[] i: organisedPoints){
-//                            for(double j: i){
-//                                j=0;
-//                            }
-//                        }
-                        compareRoutes(routes);
-
-
-//                        for(){
-////                            Log.w("cheese", "point: " +point);
-////                        }
-
-
-                        //compareRoutes(routes);
-
-                        int numThreads = Runtime.getRuntime().availableProcessors();
-                        Log.w("debug", "number of available threads: "+numThreads);
-
-                        //get all the coordinates from all the routes
-                        int numOfCoords = points.size();
-                        //atomic integer for thread safe access
-                        AtomicInteger numOfCoordsLeft = new AtomicInteger(numOfCoords);
-
-                        //Log.w("debug", "lat: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLatitude()) + " long: HERE: " + String.valueOf(tomtomMap.getUserLocation().getLongitude()));
-
-
-                        Log.w("debug", "number of coords to search for: "+ numOfCoords);
-                        //service pool of tasks to execute
-//                        ExecutorService service = Executors.newFixedThreadPool(numOfCoords);
-//
-//
-//                        //submit all the tasks using for loop
-//                        for(int o=0;o<numOfCoords;++o) {
-//                            int finalO = o;
-//                            service.submit(() -> {
-//                                //reverse geocode each coordinates to find streetnames
-//                                searchForLatLng(points.get(numOfCoordsLeft.decrementAndGet()));
-//                                Log.w("debug", "thread" + finalO + " num of coords now: "+numOfCoordsLeft);
-//                            });
-//                            //5 api calls a second so 1000/5 = 200 -make a call every 200ms
-//                            SystemClock.sleep(200);
-//                        }
-//
-//                        service.shutdown();
-//                        try {
-//                            service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-
-
-
-
-                        //get the streetname for each point and add it to an array
-
-//                                array[j] = String.valueOf(route.getCoordinates().get(j));
-//                                //array[j] = streetName;
-//                                array[j] = array[j].replace("LatLng(latitude=", "");
-//                                array[j] = array[j].replace("longitude=", "");
-//                                array[j] = array[j].replace(")", "");
-//                                Log.w("cheese", "points: "+array[j]);
-
-//                        Log.w("cheese", "number of points: " + unsortedtrack.size());
-//                        for (int i =0; i< unsortedtrack.size()/4; ++i){
-//                            Log.w("cheese", String.valueOf(unsortedtrack.get(i)));
-//                        }
-//                        //mindistToFirstPoint(unsortedtrack, departurePosition);
-//                        Log.w("cheese", "next lot:");
-//                        for (int i =0; i< unsortedtrack.size()/4; ++i){
-//                            Log.w("cheese2", String.valueOf(mindistToFirstPoint(unsortedtrack, unsortedtrack.get(unsortedtrack.size()/2)).get(i)));
-//                        }
-
-
-
-//                        //create 2d array made up of points and there 3 adjacent vertexes
-//                        double[][] parent = new double[unsortedtrack.size()-1][3];
-//
-//                        //loop for every point on every route
-//                        for (int tempPoint = 0; tempPoint<unsortedtrack.size()-1;++tempPoint){
-//
-//                            //sort the unsorted array to find the nearest edges to the current point being investigated
-//                            ArrayList<LatLng> tempPoints = Helper.mindistToFirstPoint(unsortedtrack, unsortedtrack.get(tempPoint));
-//
-//                            //set up the edges for the tempPoint
-//                            for (int tempPointEdges = 0; tempPointEdges<3; ++tempPointEdges){
-//                                //at the current tempPoint input the current edge distance for each edge
-//                                parent[tempPoint][tempPointEdges] = Helper.calculateDistance(tempPoints.get(tempPointEdges), unsortedtrack.get(tempPoint));
-//                            }
-//                        }
-//
-//                        double[][] adjacencyMatrix = { { 0, 4, 0, 0, 0, 0, 0, 8, 0 },
-//                                { 4, 0, 8, 0, 0, 0, 0, 11, 0 },
-//                                { 0, 8, 0, 7, 0, 4, 0, 0, 2 },
-//                                { 0, 0, 7, 0, 9, 14, 0, 0, 0 },
-//                                { 0, 0, 0, 9, 0, 10, 0, 0, 0 },
-//                                { 0, 0, 4, 0, 10, 0, 2, 0, 0 },
-//                                { 0, 0, 0, 14, 0, 2, 0, 1, 6 },
-//                                { 8, 11, 0, 0, 0, 0, 1, 0, 7 },
-//                                { 0, 0, 2, 0, 0, 0, 6, 7, 0 } };
-
-
-                        ArrayList<Integer> newRoute = new ArrayList<>();
-                        //calculate Dijkstra based on the points collected.
-                        newRoute = CalcDijkstra.calculate(compareRoutes(routes), 0);
-//                        String printNewRoute= "";
-//                        for(Integer j:newRoute){
-//                            printNewRoute += j + ", ";
-//                        }
-
-                        Random rnd = new Random();
-                        int color;
-                        color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-                        RouteStyle routestyle = RouteStyleBuilder.create()
-                                .withWidth(2.0)
-                                .withFillColor(color)
-                                .withOutlineColor(Color.GRAY).build();
-
-                        //new list of points that relate to current point position in the street
-                        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
-
-                        //loop for all the points in the street
-                        for(int j=0; j<newRoute.size();++j){
-                            newRoutePoints.add(points.get(newRoute.get(j)));
-                        }
-                        //draw the street
-                        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
-
-//                        Log.w("debug", "new route: " + printNewRoute);
-                        //clearMap();
-
-
-                       // color = Color.rgb(255,255,0);
-
-
-
-
-//                        MainActivity.this.runOnUiThread(() -> {
-//                            ConnectToDB connectToDB = new ConnectToDB();
-//                            JSONObject json = connectToDB.roadJSON("London", "22", "33", "55", "60");
-//                            connectToDB.sendRequest("http://192.168.0.33/test.php", json);
-//                        });
-
-                        //loop through all of the points taken from all of the routes to sort them into closest to furthest away from the starting point
-//                        DisplayMap<Integer, Double> unsortedlatlngs = new HashMap<>();
-//
-//                        ArrayList<Integer> sortedtrack = new ArrayList<Integer>();
-//                        for ( int j = 0; j < unsortedtrack.size(); j++) {
-//
-//                            unsortedlatlngs.put(j, calculateDistance(departurePosition, unsortedtrack.get(j)));
-//                        }
-//                        DisplayMap<Integer, Double> sortedlatlngs = unsortedlatlngs
-//                                .entrySet()
-//                                .stream()
-//                                .sorted(comparingByValue())
-//                                .collect(
-//                                        toMap(DisplayMap.Entry::getKey, DisplayMap.Entry::getValue, (e1, e2) -> e2,
-//                                                LinkedHashMap::new));
-
-//                        Log.d("cheese", "unsorted: ");
-//                        printMap(unsortedlatlngs);
-//                        //sortedlatlngs.putAll(unsortedlatlngs);
-//                        Log.d("cheese", "sorted: ");
-//                        printMap(sortedlatlngs);
-//
-//                        for(int i = 0; i<sortedlatlngs.size(); ++i){
-//
-//                        }
-//                        sortedlatlngs.values().toArray();
-//
-//                        ArrayList<LatLng> trackClone = unsortedtrack;
-//                        unsortedtrack.clear();
-//
-//
-//                        for (int i=0;i<sortedlatlngs.size();++i){
-//                            Double j = sortedlatlngs.get(i);
-//
-//                            //unsortedtrack.add(sortedlatlngs.get(i), trackClone.get());
-//                        }
-//                        Log.d("cheese", "first element of unsortedtrack list: " + unsortedtrack.get(0));
-                    }
-
-
-
-//                    private void createAndDisplayCustomTag1(RouteResult result){
-//                        Location tag1 = result.getRoutes().get(0).getLegs()[result.getRoutes().get(0).getLegs().length/2].getPoints()[0].toLocation();
-//
-//                        String tag1Name = String.valueOf(travelTime[0]);
-//
-//                        BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
-//                        markerBalloonData.addProperty(getString(R.string.tag1_name), tag1Name);
-//
-//                        MarkerBuilder markerBuilder = new MarkerBuilder(new LatLng(tag1.getLatitude(), tag1.getLongitude()))
-//                                .markerBalloon(markerBalloonData)
-//                                .shouldCluster(false);
-//                        tomtomMap.addMarker(markerBuilder);
-//                    }
-
-//                    private void createAndDisplayCustomTag2(RouteResult result){
-//                        //change this
-//                        Location tag2 = result.getRoutes().get(1).getLegs()[0].getPoints()[0].toLocation();
-//
-//                        String tag2Name = String.valueOf(travelTime[1]);
-//
-//                        BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
-//                        markerBalloonData.addProperty(getString(R.string.tag2_name), tag2Name);
-//
-//                        MarkerBuilder markerBuilder = new MarkerBuilder(new LatLng(tag2.getLatitude(), tag2.getLongitude()))
-//                                .markerBalloon(markerBalloonData)
-//                                .shouldCluster(false);
-//                        tomtomMap.addMarker(markerBuilder);
-//                    }
                     @Override
                     public void onError(Throwable e) {
-                        handleApiError(e);
-                        clearMap();
+                        Toast.makeText(MainActivity.this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
-
-    }
-    private void createMarkerIfNotPresent(LatLng position, Icon icon){
-        com.google.common.base.Optional<Marker> optionalMarker = tomtomMap.findMarkerByPosition(position);
-        if(!optionalMarker.isPresent()){
-            tomtomMap.addMarker(new MarkerBuilder(position).icon(icon));
-        }
     }
 
-    public static void getResponse(String string){
-        Log.w("cheese", string);
-    }
-
-    @NonNull
-    private View.OnClickListener getSearchButtonListener(){
-        return new View.OnClickListener(){
-
-            @Override
-            public void onClick(View v){
-                handleSearchClick(v);
-            }
-
-            private void handleSearchClick(View v){
-                if(isRouteSet()){
-                    Optional<CharSequence> description = Optional.fromNullable(v.getContentDescription());
-                    if(description.isPresent()){
-                        editTextPois.setText(description.get());
-                        v.setSelected(true);
-                    }
-                    if(isWayPointPositionSet()){
-                        tomtomMap.clear();
-                        drawRoute(departurePosition, destinationPosition);
-                    }
-                    String textToSearch = editTextPois.getText().toString();
-                    LatLng lngToSearch = new LatLng(Double.valueOf(textToSearch.split(",")[0]), Double.valueOf(textToSearch.split(",")[1]));
-                    if(!textToSearch.isEmpty()){
-                        tomtomMap.removeMarkers();
-                        searchForLatLng(lngToSearch);
-                        //searchAlongTheRoute(textToSearch);
-                    }
-                }
-            }
-
-            private boolean isRouteSet(){
-                return route != null;
-            }
-
-            private boolean isWayPointPositionSet(){
-                return wayPointPosition != null;
-            }
-
-        };
-    }
-
-
-    private double[][] compareRoutes(List<FullRoute> routes){
-
-        //map of points and their neighbours
-        Map<LatLng, ArrayList<LatLng>> pointsAndNeighbours = new LinkedHashMap<>();
-
-        //list of points that can be adapted to our needs
-        ArrayList<LatLng> pointList = new ArrayList<>();
-
-
-        for(FullRoute r: routes){
-            for(LatLng c: r.getCoordinates()){
-                pointList.add(c);
-                pointsAndNeighbours.put(c, new ArrayList<>());
-            }
-        }
-
-        //prepare the points for dijkstra
-        double [][] dijkstraPoints = new double[pointList.size()][pointList.size()];
-
-        for (int i = 0; i < routes.size(); ++i) {
-           // Log.w("points", "route: "+i + "size: "+routes.get(i).getCoordinates().size());
-
-            //for every point within every route
-            for (int j = 0; j < routes.get(i).getCoordinates().size(); j++)
-            {
-                ArrayList neighbours = pointsAndNeighbours.get(routes.get(i).getCoordinates().get(j));
-
-                //if it is within the limits of the array and its not already in the map!
-                if(j+1<routes.get(i).getCoordinates().size() && !neighbours.contains(routes.get(i).getCoordinates().get(j+1)))
-                {
-                    //add the next point as first neighbour
-                    neighbours.add(routes.get(i).getCoordinates().get(j + 1));
-                }
-                else if((j+1>=routes.get(i).getCoordinates().size())&& !neighbours.contains(routes.get(i).getCoordinates().get(j-1)))
-                    {
-                    //add the next point as first neighbours
-                    neighbours.add(routes.get(i).getCoordinates().get(j - 1));
-                }
-
-                if(i+1<routes.size())
-                {
-                    //start on the next route
-                    for (int y = i + 1; y < routes.size(); ++y)
-                    {
-                        //start at the first routes neighbour
-                        for (int l = j; l < routes.get(y).getCoordinates().size(); ++l)
-                        {
-                            //check the current point with all the points to find matches
-                            if (routes.get(i).getCoordinates().get(j).toString().equals(routes.get(y).getCoordinates().get(l).toString()))
-                            {
-                                //add all the neighbours of the points that match with the original point
-                                if (l + 1 < routes.get(y).getCoordinates().size())
-                                {
-                                    //add point beyond match as a neighbour
-                                    neighbours.add(routes.get(y).getCoordinates().get(l + 1));
-                                    //Log.w("points", "adding point to neighbours: " + routes.get(y).getCoordinates().get(l + 1));
-                                } else if((j+1>=routes.get(i).getCoordinates().size()))
-                                    {
-                                    //if last point then get the point that links to it previously
-                                    //add point previous to match as a neighbour
-                                    neighbours.add(routes.get(y).getCoordinates().get(l - 1));
-                                    //Log.w("points", "adding last point to neighbours: " + routes.get(y).getCoordinates().get(l - 1));
-                                }
-
-                            }
-                        }
-                    }
-                }
-                //add the point and its neighbours
-                pointsAndNeighbours.put(routes.get(i).getCoordinates().get(j), neighbours);
-            }
-        }
-        for(int i=0;i<pointList.size();i++){
-            ArrayList<LatLng> value = pointsAndNeighbours.get(pointList.get(i));
-            for (int j = 0; j < value.size(); j++) {
-                dijkstraPoints[i][pointList.indexOf(value.get(j))] = pointList.get(i).toLocation().distanceTo(value.get(j).toLocation());
-                dijkstraPoints[pointList.indexOf(value.get(j))][i] = pointList.get(i).toLocation().distanceTo(value.get(j).toLocation());
-            }
-        }
-        return dijkstraPoints;
-    }
-
-
-    private void collateStreetPoints(){
-        //check if any streetnames match each other
-        if(pointCount >0) {
-            if (streetnames.get(pointCount).equals(streetnames.get(pointCount -1))) {
-                //add another point to the current street's set of points
-                pointPos.add(pointCount);
-                //Log.w("debug", "adding another point: " + pointCount + " for: " + streetnames.get(pointCount));
-                //update or add new streetname and add its points
-                map.put(streetnames.get(pointCount), pointPos);
-                //Log.w("debug", "Map adding1: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
-                //Log.w("debug2",  "size of the map: " + map.size());
-
-
-                //give the street some colour
-                //newStreetNewColour(pointCount);
-//                String string = "\n";
-//                for(double[] i: organisedPoints){
-//                    for(double j: i){
-//                        string +=j;
-//                        string += ", ";
-//                    }
-//                    string += "\n";
-//                }
-//                Log.w("debug2", "organised points current street: "+ string);
-
-            }else{
-                pointPos.clear();
-                pointPos.add(pointCount);
-                //put the new streetname's points into map
-                map.put(streetnames.get(pointCount), pointPos);
-//                map.get(streetnames.get(pointCount-1)).size()-1)
-//                for(int i = 1; i<pointPos.size();++i) {
-//                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(i)), points.get(i-1));
-//                }
-                //Log.w("debug", "Map adding2: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
-                //Log.w("debug2",  "size of the map: " + map.size());
-
-//                String string = "\n";
-
-//                for(double[] i: organisedPoints){
-//                    for(double j: i){
-//                         string +=j;
-//                         string += ", ";
-//                    }
-//                    string += "\n";
-//                }
-//                Log.w("debug2", "organised points current street: "+ string);
-
-                //give the street some colour
-                //newStreetNewColour(pointCount);
-
-//                //check if its the last streetname and therefore needs to added.
-//                if((pointCount == points.size()-1)){
-//                    pointPos.add(pointCount);
-//                    Log.w("debug", "adding the last point: " + pointCount);
-//                    map.put(streetnames.get(pointCount), pointPos);
-//                    Log.w("debug", "Map adding1: "+ streetnames.get(pointCount) + " with: " + pointPos.size() + "points");
-//
-//                    //String key = (String) ;
-//                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(0)), points.get(map.get(streetnames.get(pointCount-1)).size()-1));
-//                    newStreetNewColour(pointCount);
-//                }
-
-            }
-//            else{
-//                pointPos.add(pointCount);
-//                map.put(streetnames.get(pointCount), pointPos);
-//                Log.w("debug", "map adding1: " + streetnames.get(pointCount) + "with: " + pointPos.size() + "points");
-//                Log.w("debug", "adding odd point: " + pointCount);
-//                pointPos.clear();
-//                newStreetNewColour(pointCount);
-//            }
-        } else {
-            //add the first point to the current street's set of points
-            pointPos.add(pointCount);
-            //Log.w("debug", "adding first point: " + pointCount);
-        }
-
-    }
-
-    private void newStreetNewColour(int currrentStreet){
-        //Log.w("debug", "colouring in: " + streetnames.get(currrentStreet));
-        //loop for every street in the route
-            //new color for every street
-            Random rnd = new Random();
-            int color;
-            color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-            RouteStyle routestyle = RouteStyleBuilder.create()
-                    .withWidth(2.0)
-                    .withFillColor(color)
-                    .withOutlineColor(Color.GRAY).build();
-
-            //get the list of points for the current street
-            ArrayList<Integer> streetPointPos = map.get(streetnames.get(currrentStreet));
-            //new list of points that relate to current point position in the street
-            ArrayList<LatLng> newRoutePoints = new ArrayList<>();
-
-            //loop for all the points in the street
-            for(int j=0; j<streetPointPos.size();++j){
-                newRoutePoints.add(points.get(streetPointPos.get(j)));
-            }
-            //draw the street
-            route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
-
-    }
-
-    private void colourmatched(LatLng p1, LatLng p2){
-        //new color for every street
-        Random rnd = new Random();
-        int color;
-        color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
-        RouteStyle routestyle = RouteStyleBuilder.create()
-                .withWidth(2.0)
-                .withFillColor(color)
-                .withOutlineColor(Color.GRAY).build();
-
-        //new list of points that relate to current point position in the street
-        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
-        newRoutePoints.add(p1);
-        newRoutePoints.add(p2);
-
-        //draw the street
-        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
-    }
-
-
-
-    private void searchForLatLng(LatLng latLng){
-        searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
+    private void setAddressForLocation(LatLng location, final AutoCompleteTextView autoCompleteTextView) {
+        searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(location.getLatitude(), location.getLongitude())) //.build()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new DisposableSingleObserver<ReverseGeocoderSearchResponse>() {
                     @Override
-                    public void onSuccess(ReverseGeocoderSearchResponse response){
-                        processResponse(response);
+                    public void onSuccess(ReverseGeocoderSearchResponse reverseGeocoderSearchResponse) {
+                        List addressesList = reverseGeocoderSearchResponse.getAddresses();
+                        if (!addressesList.isEmpty()) {
+                            String address = ((ReverseGeocoderFullAddress) addressesList.get(0)).getAddress().getFreeformAddress();
+                            autoCompleteTextView.setText(address);
+                            autoCompleteTextView.dismissDropDown();
+                        }
                     }
 
                     @Override
-                    public void onError(Throwable e){
-                        handleApiError(e);
-                    }
-
-                    private void processResponse(ReverseGeocoderSearchResponse response){
-                        if(response.hasResults()) {
-                            //put into array of streetnames
-                            streetnames.add(response.getAddresses().get(0).getAddress().getStreetName());
-                            // Log.w("debug", "streetnames added: " + streetnames.get(pointCount) + " " + pointCount);
-
-                            //add all the points up that relate top that street
-                            //collateStreetPoints();
-                            pointCount++;
-                        }
-                        else{
-                            Toast.makeText(MainActivity.this, getString(R.string.geocode_no_results), Toast.LENGTH_SHORT).show();
-                        }
+                    public void onError(Throwable e) {
+                        Toast.makeText(MainActivity.this, getString(R.string.toast_error_message_error_getting_location, e.getLocalizedMessage()), Toast.LENGTH_LONG).show();
+                        Log.e(LOG_TAG, getString(R.string.toast_error_message_error_getting_location, e.getLocalizedMessage()), e);
                     }
                 });
     }
 
-    private void searchAlongTheRoute(final String textToSearch){
-
-        searchApi.alongRouteSearch(new AlongRouteSearchQueryBuilder(textToSearch, route.getCoordinates(), MAX_DETOUR_TIME).withLimit(QUERY_LIMIT))
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new DisposableSingleObserver<AlongRouteSearchResponse>() {
-                    @Override
-                    public void onSuccess(AlongRouteSearchResponse response){
-                        displaySearchResults(response.getResults());
-                    }
-
-                    private void displaySearchResults(List<AlongRouteSearchResult> results){
-                        if(!results.isEmpty()){
-                            for(AlongRouteSearchResult result:results){
-                                createAndDisplayCustomMarker(result.getPosition(), result);
-                            }
-                            tomtomMap.zoomToAllMarkers();
-
-                        } else{
-                            Toast.makeText(MainActivity.this, String.format(getString(R.string.no_search_results), textToSearch), Toast.LENGTH_LONG).show();
-                        }
-                    }
-
-                    private void createAndDisplayCustomMarker(LatLng position, AlongRouteSearchResult result){
-                        String address = result.getAddress().getStreetName();
-                        String poiName = result.getPoi().getName();
-
-                        BaseMarkerBalloon markerBalloonData = new BaseMarkerBalloon();
-                        markerBalloonData.addProperty(getString(R.string.poi_name_key), poiName);
-                        markerBalloonData.addProperty(getString(R.string.address_key), address);
-
-                        MarkerBuilder markerBuilder = new MarkerBuilder(position)
-                                .markerBalloon(markerBalloonData)
-                                .shouldCluster(true);
-                        tomtomMap.addMarker(markerBuilder);
-                    }
-
-                    @Override
-                    public void onError(Throwable e){
-                        handleApiError(e);
-                    }
-                });
-    }
-
-   /* @NonNull
-    private View.OnClickListener getTrafficButtonListener(){
-        return new View.OnClickListener(){
-
+    private void setClearButtonToAutocompleteField(final AutoCompleteTextView autoCompleteTextView, final ImageButton imageButton) {
+        imageButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
-                LatLng latLng1 = new LatLng((256/2*Math.PI)*2*(departurePosition.getLatitude()+Math.PI),
-                        ((256/2*Math.PI)*2*(Math.PI - Math.log(Math.tan(Math.PI/4+departurePosition.getLongitude()/2)))));
-                LatLng latLng2 = new LatLng((256/2*Math.PI)*2*(destinationPosition.getLatitude()+Math.PI),
-                        ((256/2*Math.PI)*2*(Math.PI - Math.log(Math.tan(Math.PI/4+destinationPosition.getLongitude()/2)))));
-                bbox = new BoundingBox(latLng1, latLng2);
-                handleTrafficClick(v);
+            public void onClick(View v) {
+                autoCompleteTextView.setText("");
+                autoCompleteTextView.requestFocus();
+                imageButton.setVisibility(View.GONE);
             }
-
-            private void handleTrafficClick(View v){
-                IncidentDetailsQueryBuilder query = new IncidentDetailsQueryBuilder(IncidentStyle.S1, bbox, 4, "-1")
-                        .withExpandCluster(true).build();
-                trafficApi.findIncidentDetails(query, incidentDetailsResultListener);
-                v.setSelected(true);
-            }
-        };
+        });
     }
 
-    private IncidentDetailsResultListener incidentDetailsResultListener = new IncidentDetailsResultListener() {
-        @Override
-        public void onTrafficIncidentDetailsResult(IncidentDetailsResponse result) {
+//    private void initByWhenSection() {
+//        setArriveAtCalendar(ARRIVE_TIME_AHEAD_HOURS);
+//        textViewArriveAtHour = findViewById(R.id.text_view_main_arrive_at_hour);
+//        textViewArriveAtAmPm = findViewById(R.id.text_view_main_arrive_at_am_pm);
+////        setTimerDisplay();
+////        textViewArriveAtHour.setOnClickListener(new View.OnClickListener() {
+////            @Override
+////            public void onClick(View v) {
+////                DialogFragment timePickerFragment = new TimePickerFragment();
+////                timePickerFragment.show(getFragmentManager(), TIME_PICKER_DIALOG_TAG);
+////            }
+////        });
+//    }
 
-            final List<TrafficIncident> items = new ArrayList<>();
-
-            TrafficIncidentVisitor visitor = new TrafficIncidentVisitor() {
-                @Override
-                public void visit(TrafficIncidentCluster cluster) {
-                    proceedWithCluster(cluster, items);
-                }
-
-                @Override
-                public void visit(TrafficIncident incident) {
-                    proceedWithIncident(incident, items);
-                }
-            };
-
-            for (BaseTrafficIncident incident : result.getIncidents()) {
-                incident.accept(visitor);
-            }
-
-            view.updateTrafficIncidentsList(items);
-        }
-
-        @Override
-        public void onTrafficIncidentDetailsError(Throwable error) {
-            Toast.makeText(view.getContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    };
-*/
-
-
-//    private SingleLayoutBalloonViewAdapter createCustomViewAdapter(){
-//        return new SingleLayoutBalloonViewAdapter(R.layout.marker_custom_balloon){
-//            @Override
-//            public void onBindView(View view, final Marker marker, BaseMarkerBalloon baseMarkerBalloon){
-//                Button btnAddWayPoint = view.findViewById(R.id.btn_balloon_waypoint);
-//                final TextView textViewPoiName = view.findViewById(R.id.textview_balloon_poiname);
-//                TextView textViewPoiAddress = view.findViewById(R.id.textview_balloon_poiaddress);
-//                textViewPoiName.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.poi_name_key)));
-//                textViewPoiAddress.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.address_key)));
-//                btnAddWayPoint.setOnClickListener(new View.OnClickListener(){
-//                    @Override
-//                    public void onClick(View v){
-//                        setWayPoint(marker);
-//                        saySomething(textViewPoiName.getText().toString().trim(), 1);
-//                    }
-//                    private void setWayPoint(Marker marker){
-//                        wayPointPosition = marker.getPosition();
-//
-//                        tomtomMap.clearRoute();
-//                        drawRouteWithWayPoints(departurePosition, destinationPosition, new LatLng[] {wayPointPosition});
-//                        marker.deselect();
-//                    }
-//                });
-//            }
-//        };
+//    private void setArriveAtCalendar(int aheadHours) {
+//        calArriveAt = Calendar.getInstance();
+//        calArriveAt.add(Calendar.HOUR, aheadHours);
 //    }
 //
-//    private SingleLayoutBalloonViewAdapter createCustomRoute1Balloon() {
-//        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
-//            @Override
-//            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
-//                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
-//                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag1_name)));
-//            }
-//        };
+//    public void setTimerDisplay() {
+//        String tvArriveAtHourString = (String) DateFormat.format(getUserPreferredHourPattern(), calArriveAt.getTimeInMillis());
+//        textViewArriveAtHour.setText(tvArriveAtHourString);
+//        setTvArriveAtAmPm(DateFormat.is24HourFormat(getApplicationContext()), calArriveAt.get(Calendar.AM_PM));
 //    }
-//    private SingleLayoutBalloonViewAdapter createCustomRoute2Balloon() {
-//        return new SingleLayoutBalloonViewAdapter(R.layout.custom_tag) {
+
+//    private String getUserPreferredHourPattern() {
+//        return DateFormat.is24HourFormat(getApplicationContext()) ? TIME_24H_FORMAT : TIME_12H_FORMAT;
+//    }
+//
+//    private void setTvArriveAtAmPm(boolean is24HourFormat, int indicator) {
+//        if (is24HourFormat) {
+//            textViewArriveAtAmPm.setVisibility(View.INVISIBLE);
+//        } else {
+//            textViewArriveAtAmPm.setVisibility(View.VISIBLE);
+//            String strAmPm = (indicator == Calendar.AM) ? getString(R.string.main_am_value) : getString(R.string.main_pm_value);
+//            textViewArriveAtAmPm.setText(strAmPm);
+//        }
+//    }
+//
+//    private void initByWhatSection() {
+//        buttonByWhatCar = findViewById(R.id.button_main_car);
+//        buttonByWhatTaxi = findViewById(R.id.button_main_taxi);
+//        buttonByWhatOnFoot = findViewById(R.id.button_main_on_foot);
+//        buttonByWhatCar.setSelected(true);
+//
+//        buttonByWhatCar.setOnClickListener(setByWhatButtonListener(TravelMode.CAR));
+//        buttonByWhatTaxi.setOnClickListener(setByWhatButtonListener(TravelMode.TAXI));
+//        buttonByWhatOnFoot.setOnClickListener(setByWhatButtonListener(TravelMode.PEDESTRIAN));
+//    }
+
+//    private View.OnClickListener setByWhatButtonListener(final TravelMode travelMode) {
+//        return new View.OnClickListener() {
 //            @Override
-//            public void onBindView(View view, Marker marker, BaseMarkerBalloon baseMarkerBalloon) {
-//                final TextView textViewNameTag = view.findViewById(R.id.textview_tag_tagname);
-//                textViewNameTag.setText(baseMarkerBalloon.getStringProperty(getApplicationContext().getString(R.string.tag2_name)));
+//            public void onClick(View v) {
+//                deselectByWhatButtons();
+//                v.setSelected(true);
+//                travelModeSelected = travelMode;
 //            }
 //        };
 //    }
 
-    //text to speech
-    public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
-            if (mTTS != null) {
-                int result = mTTS.setLanguage(Locale.US);
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    Toast.makeText(this, "TTS language is not supported", Toast.LENGTH_LONG).show();
-                } else {
-                    saySomething("Hello World", 0);
+//    private void deselectByWhatButtons() {
+//        buttonByWhatTaxi.setSelected(false);
+//        buttonByWhatOnFoot.setSelected(false);
+//        buttonByWhatCar.setSelected(false);
+//    }
+
+//    private void initPreparationSection() {
+//        buttonPreparationFirst = findViewById(R.id.button_main_preparation_first);
+//        buttonPreparationSecond = findViewById(R.id.button_main_preparation_second);
+//        buttonPreparationThird = findViewById(R.id.button_main_preparation_third);
+//        deselectPreparationButtons();
+//        selectPreparationButton(buttonPreparationFirst);
+//
+//        buttonPreparationFirst.setOnClickListener(setPreparationButtonListener(PREPARATION_FIRST_OPT));
+//        buttonPreparationSecond.setOnClickListener(setPreparationButtonListener(PREPARATION_SECOND_OPT));
+//        buttonPreparationThird.setOnClickListener(setPreparationButtonListener(PREPARATION_THIRD_OPT));
+//    }
+
+//    private View.OnClickListener setPreparationButtonListener(final int preparationTimeInMinutes) {
+//        return new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                deselectPreparationButtons();
+//                selectPreparationButton(v);
+//                preparationTimeSelected = preparationTimeInMinutes;
+//            }
+//        };
+//    }
+
+//    private void deselectPreparationButtons() {
+//        int elevationButtonNormal = (int) getResources().getDimension(R.dimen.main_elevation_button_normal);
+//        buttonPreparationFirst.setSelected(false);
+//        buttonPreparationFirst.setElevation(elevationButtonNormal);
+//        buttonPreparationSecond.setSelected(false);
+//        buttonPreparationSecond.setElevation(elevationButtonNormal);
+//        buttonPreparationThird.setSelected(false);
+//        buttonPreparationThird.setElevation(elevationButtonNormal);
+//    }
+//
+//    private void selectPreparationButton(View preparationButton) {
+//        preparationButton.setSelected(true);
+//        int elevationButtonPressed = (int) getResources().getDimension(R.dimen.main_elevation_button_pressed);
+//        preparationButton.setElevation(elevationButtonPressed);
+//    }
+
+    private void initStartSection() {
+        Button buttonStart = findViewById(R.id.button_main_start);
+        buttonStart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //long currentTimeInMillis = getCurrentTimeInMillis();
+                //arrivalTimeInMillis = getArrivalTimeInMillis();
+
+                if (departureFiledIsEmpty()) {
+                    initDepartureWithDefaultValue();
+                } else if (destinationFieldIsEmpty()) {
+                    initDestinationWithDefaultValue();
                 }
+
+//                if (currentTimeInMillis >= arrivalTimeInMillis) {
+//                    calArriveAt.add(Calendar.DAY_OF_MONTH, 1);
+//                    arrivalTimeInMillis = getArrivalTimeInMillis();
+//                }
+
+                Intent intent = MapActivity.prepareIntent(MainActivity.this,
+                        latLngDeparture,
+                        latLngDestination,
+                        travelModeSelected,
+                        arrivalTimeInMillis,
+                        preparationTimeSelected);
+                startActivity(intent);
             }
-        } else {
-            Toast.makeText(this, "TTS initialization failed", Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private boolean textViewIsEmpty(AutoCompleteTextView textView) {
+        return textView.getText().toString().isEmpty();
+    }
+
+    private boolean departureFiledIsEmpty() {
+        return textViewIsEmpty(atvDepartureLocation);
+    }
+
+    private boolean destinationFieldIsEmpty() {
+        return textViewIsEmpty(atvDestinationLocation);
+    }
+
+//    private long getCurrentTimeInMillis() {
+//        Calendar calendar = Calendar.getInstance();
+//        return calendar.getTimeInMillis();
+//    }
+
+//    private long getArrivalTimeInMillis() {
+//        return calArriveAt.getTimeInMillis();
+//    }
+
+//    private void resetDaysInArriveAt() {
+//        Calendar calendar = Calendar.getInstance();
+//        calArriveAt.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH));
+//    }
+
+    private void hideKeyboard(View view) {
+        InputMethodManager in = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (in != null) {
+            in.hideSoftInputFromWindow(view.getApplicationWindowToken(), 0);
         }
     }
 
-    private void saySomething(String text, int qmode) {
-        if (qmode == 1)
-            mTTS.speak(text, TextToSpeech.QUEUE_ADD, null);
-        else
-            mTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == ACT_CHECK_TTS_DATA) {
-            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-                // data exists, so we instantiate the TTS engine
-                mTTS = new TextToSpeech(this, this);
-            } else {
-                // data is missing, so we start the TTS installation process
-                Intent installIntent = new Intent();
-                installIntent.setAction(
-                        TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-                startActivity(installIntent);
-            }
+    private abstract class BaseTextWatcher implements TextWatcher {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (mTTS != null) {
-            mTTS.stop();
-            mTTS.shutdown();
-        }
-
-        super.onDestroy();
     }
 }
+
+
+
+
+
+
+//    //OnMapReadyCallback
+//    //TomtomMapCallback.OnMapLongClickListener
+//        //TextToSpeech.OnInitListener
+//
+//    private TomtomMap tomtomMap;
+//    private RoutingApi routingApi;
+//
+//    //private TrafficApi trafficApi;
+//
+////    private LatLng wayPointPosition;
+//
+//    private String streetName;
+//    //new list of points that relate to current point position in the street
+//    private ArrayList<LatLng> newRoutePoints;
+//
+//    int pointCount = 0;
+//    //map of different streetnames and their positions in the original streetname array
+//    Map<String, ArrayList<Integer>> map;
+//    ArrayList<Integer> pointPos;
+//    //text to speech
+//    TextToSpeech mTTS = null;
+//    private final int ACT_CHECK_TTS_DATA = 1000;
+//    private final int REQUEST_PERMISSION_WRITE_EXTERNAL_STORAGE = 2000;
+//    private int permissionCount = 0;
+//    private String mAudioFilename = "";
+//    private final String mUtteranceID = "totts";
+//    //colours
+//    private int[] routeColours;
+//    //travelTime
+//    private int[] travelTime;
+//
+//    final int MAX_DETOUR_TIME = 10000;
+//    final int QUERY_LIMIT = 100;
+//
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.activity_main);
+//        initTomTomServices();
+//        initUIViews();
+//        setupUIViewListeners();
+//        //nitColours();
+//
+//        // Check to see if we have TTS voice data
+////        Intent ttsIntent = new Intent();
+////        ttsIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+////        startActivityForResult(ttsIntent, ACT_CHECK_TTS_DATA);
+//    }
+//
+////    @Override
+////    public void onMapReady(@NonNull final TomtomMap tomtomMap) {
+////        this.tomtomMap = tomtomMap;
+////        this.tomtomMap.getUiSettings().setMapTilesType(MapTilesType.VECTOR);
+////        this.tomtomMap.setMyLocationEnabled(true);
+//////        this.tomtomMap.getMarkerSettings().setMarkersClustering(true);
+////        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomViewAdapter());
+////        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute1Balloon());
+////        //this.tomtomMap.getMarkerSettings().setMarkerBalloonViewAdapter(createCustomRoute2Balloon());
+////    }
+//
+//
+//
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults){
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//        this.tomtomMap.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//    }
+//
+//    @Override
+//    public void onPointerCaptureChanged(boolean hasCapture) {
+//
+//    }
+//
+//    private void initTomTomServices() {
+////        MapFragment mapFragment = (MapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
+////        mapFragment.getAsyncMap(this);
+////        searchApi = OnlineSearchApi.create(this);
+////        routingApi = OnlineRoutingApi.create(this);
+//        //trafficApi = OnlineTrafficApi.create(this);
+//    }
+//
+//    private void initUIViews() {
+//
+//    }
+//
+//    private void setupUIViewListeners() {
+////        View.OnClickListener searchButtonListener = getSearchButtonListener();
+////        btnSearch.setOnClickListener(searchButtonListener);
+//        //View.OnClickListener trafficButtonListener = getTrafficButtonListener();
+//        //btnTrafficList.setOnClickListener(trafficButtonListener);
+//    }
+//
+////    private void getLocation(){
+//////        Icon activeIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.ic_markedlocation);
+//////        Icon inactiveIcon = Icon.Factory.fromResources(MainActivity.this, R.drawable.arrow_down);
+//////        ChevronBuilder chevronBuilder = ChevronBuilder.create(activeIcon, inactiveIcon);
+//////        Chevron chevron = tomtomMap.getDrivingSettings().addChevron(chevronBuilder);
+//////        tomtomMap.getDrivingSettings().startTracking(chevron);
+//////        chevron.getLocation();
+//////        tomtomMap.getDrivingSettings().stopTracking();
+////    }
+//
+//
+//    public static void getResponse(String string){
+//        Log.w("cheese", string);
+//    }
+//
+//    public String getStreetName() {
+//        return streetName;
+//    }
+//
+//
+//    //apply different speed factors to the distances between points in the distances list
+//    private static double factorSpeed(double distance){
+//        Random rand = new Random();
+//
+//        //the percentage of speed that the car is decreased by in various situations
+//        double speedBumpDecrease = 0.5;
+//        double trafficLightDecrease = 0.5;
+//        double pedestrianDecrease = 0.9;
+//
+//        boolean speedBump;
+//        boolean trafficLight;
+//        boolean pedestrian;
+//
+//            //the chance of the car encountering each speed factor
+//            speedBump = rand.nextDouble() <=0.05;
+//            trafficLight = rand.nextDouble() <= 0.3;
+//            pedestrian = rand.nextDouble() <= 0.1;
+//
+//            if(speedBump){
+//                distance = distance * speedBumpDecrease;
+//            }
+//            if(trafficLight){
+//                distance = distance * trafficLightDecrease;
+//            }
+//            if(pedestrian){
+//                distance = distance * pedestrianDecrease;
+//            }
+//
+//        return distance;
+//    }
+//
+//
+////    private void collateStreetPoints(){
+////        //check if any streetnames match each other
+////        if(pointCount >0) {
+////            if (streetnames.get(pointCount).equals(streetnames.get(pointCount -1))) {
+////                //add another point to the current street's set of points
+////                pointPos.add(pointCount);
+////                //Log.w("debug", "adding another point: " + pointCount + " for: " + streetnames.get(pointCount));
+////                //update or add new streetname and add its points
+////                map.put(streetnames.get(pointCount), pointPos);
+////                //Log.w("debug", "Map adding1: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+////                //Log.w("debug2",  "size of the map: " + map.size());
+////
+////
+////                //give the street some colour
+////                //debugStreets(pointCount);
+//////                String string = "\n";
+//////                for(double[] i: organisedPoints){
+//////                    for(double j: i){
+//////                        string +=j;
+//////                        string += ", ";
+//////                    }
+//////                    string += "\n";
+//////                }
+//////                Log.w("debug2", "organised points current street: "+ string);
+////
+////            }else{
+////                pointPos.clear();
+////                pointPos.add(pointCount);
+////                //put the new streetname's points into map
+////                map.put(streetnames.get(pointCount), pointPos);
+//////                map.get(streetnames.get(pointCount-1)).size()-1)
+//////                for(int i = 1; i<pointPos.size();++i) {
+//////                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(i)), points.get(i-1));
+//////                }
+////                //Log.w("debug", "Map adding2: " + streetnames.get(pointCount) + " with: "+ pointPos.size() + "points");
+////                //Log.w("debug2",  "size of the map: " + map.size());
+////
+//////                String string = "\n";
+////
+//////                for(double[] i: organisedPoints){
+//////                    for(double j: i){
+//////                         string +=j;
+//////                         string += ", ";
+//////                    }
+//////                    string += "\n";
+//////                }
+//////                Log.w("debug2", "organised points current street: "+ string);
+////
+////                //give the street some colour
+////                //debugStreets(pointCount);
+////
+//////                //check if its the last streetname and therefore needs to added.
+//////                if((pointCount == points.size()-1)){
+//////                    pointPos.add(pointCount);
+//////                    Log.w("debug", "adding the last point: " + pointCount);
+//////                    map.put(streetnames.get(pointCount), pointPos);
+//////                    Log.w("debug", "Map adding1: "+ streetnames.get(pointCount) + " with: " + pointPos.size() + "points");
+//////
+//////                    //String key = (String) ;
+//////                    organisedPoints[map.size()][pointCount] = Helper.calculateDistance(points.get(pointPos.get(0)), points.get(map.get(streetnames.get(pointCount-1)).size()-1));
+//////                    debugStreets(pointCount);
+//////                }
+////
+////            }
+//////            else{
+//////                pointPos.add(pointCount);
+//////                map.put(streetnames.get(pointCount), pointPos);
+//////                Log.w("debug", "map adding1: " + streetnames.get(pointCount) + "with: " + pointPos.size() + "points");
+//////                Log.w("debug", "adding odd point: " + pointCount);
+//////                pointPos.clear();
+//////                debugStreets(pointCount);
+//////            }
+////        } else {
+////            //add the first point to the current street's set of points
+////            pointPos.add(pointCount);
+////            //Log.w("debug", "adding first point: " + pointCount);
+////        }
+////
+////    }
+//
+//
+//
+////    private void debugStreets(LatLng p1, LatLng p2){
+////        ///new color for every street
+////        Random rnd = new Random();
+////        int color;
+////        color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+////        RouteStyle routestyle = RouteStyleBuilder.create()
+////                .withWidth(2.0)
+////                .withFillColor(color)
+////                .withOutlineColor(Color.GRAY).build();
+////
+////        //new list of points that relate to current point position in the street
+////        ArrayList<LatLng> newRoutePoints = new ArrayList<>();
+////        newRoutePoints.add(p1);
+////        newRoutePoints.add(p2);
+////
+////        //draw the street
+////        route = tomtomMap.addRoute(new RouteBuilder(newRoutePoints).startIcon(departureIcon).endIcon(destinationIcon).style(routestyle));
+////
+////    }
+//
+//
+////    public void setStreetName(LatLng latLng){
+////        searchApi.reverseGeocoding(new ReverseGeocoderSearchQueryBuilder(latLng.getLatitude(), latLng.getLongitude()))
+////                .subscribeOn(Schedulers.io())
+////                .observeOn(AndroidSchedulers.mainThread())
+////                .subscribe(new DisposableSingleObserver<ReverseGeocoderSearchResponse>() {
+////                    @Override
+////                    public void onSuccess(ReverseGeocoderSearchResponse response){
+////                        processResponse(response);
+////                    }
+////
+////                    @Override
+////                    public void onError(Throwable e){
+////                        handleApiError(e);
+////                    }
+////
+////                    private void processResponse(ReverseGeocoderSearchResponse response){
+////                        if(response.hasResults()) {
+////                            //set the streetname
+////                            streetName = response.getAddresses().get(0).getAddress().getStreetName();
+////                            response.toString();
+//////                            //put into array of streetnames
+//////                            streetnames.add(response.getAddresses().get(0).getAddress().getStreetName());
+//////                            // Log.w("debug", "streetnames added: " + streetnames.get(pointCount) + " " + pointCount);
+//////
+//////                            //add all the points up that relate top that street
+//////                            //collateStreetPoints();
+//////                            pointCount++;
+////                        }
+////                        else{
+////                            Toast.makeText(MainActivity.this, getString(R.string.geocode_no_results), Toast.LENGTH_SHORT).show();
+////                        }
+////                    }
+////                });
+////    }
+//
+////    //text to speech
+////    public void onInit(int status) {
+////        if (status == TextToSpeech.SUCCESS) {
+////            if (mTTS != null) {
+////                int result = mTTS.setLanguage(Locale.US);
+////                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+////                    Toast.makeText(this, "TTS language is not supported", Toast.LENGTH_LONG).show();
+////                } else {
+////                    saySomething("Hello World", 0);
+////                }
+////            }
+////        } else {
+////            Toast.makeText(this, "TTS initialization failed", Toast.LENGTH_LONG).show();
+////        }
+////    }
+////
+////    private void saySomething(String text, int qmode) {
+////        if (qmode == 1)
+////            mTTS.speak(text, TextToSpeech.QUEUE_ADD, null);
+////        else
+////            mTTS.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+////    }
+////
+////    @Override
+////    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+////        if (requestCode == ACT_CHECK_TTS_DATA) {
+////            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+////                // data exists, so we instantiate the TTS engine
+////                mTTS = new TextToSpeech(this, this);
+////            } else {
+////                // data is missing, so we start the TTS installation process
+////                Intent installIntent = new Intent();
+////                installIntent.setAction(
+////                        TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+////                startActivity(installIntent);
+////            }
+////        }
+////    }
+////
+////    @Override
+////    protected void onDestroy() {
+////        if (mTTS != null) {
+////            mTTS.stop();
+////            mTTS.shutdown();
+////        }
+////
+////        super.onDestroy();
+////    }
+//}

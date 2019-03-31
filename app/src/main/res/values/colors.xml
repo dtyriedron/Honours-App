@@ -4,4 +4,11 @@
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
     <color name="bg_balloon_button_color">#C3D552</color>
+    <color name="color_all_text">#707070</color>
+    <color name="color_border_grey">#313131</color>
+    <color name="color_activity_grey_background">#F4F6F8</color>
+
+    <color name="color_light_green">#BDD731</color>
+    <color name="color_green_focused">#A2BA24</color>
+    <color name="color_green_selected">#333</color>
 </resources>

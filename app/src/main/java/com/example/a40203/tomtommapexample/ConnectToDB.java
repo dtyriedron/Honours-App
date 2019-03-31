@@ -76,7 +76,7 @@ public class ConnectToDB {
                 }
 
                 final String reposnseString = response.body().string();
-                    MainActivity.getResponse(reposnseString);
+//                    MainActivity.getResponse(reposnseString);
             }
         });
     }

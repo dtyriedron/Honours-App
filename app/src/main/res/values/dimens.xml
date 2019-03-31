@@ -8,4 +8,64 @@
     <dimen name="spacing_small">10dp</dimen>
     <dimen name="text_size_small">12sp</dimen>
     <dimen name="text_size_normal">14sp</dimen>
+
+
+    <dimen name="padding_snackbar">10dp</dimen>
+    <dimen name="spacing_xxxlarge">36dp</dimen>
+    <dimen name="spacing_xxlarge">32dp</dimen>
+    <dimen name="spacing_xlarge">28dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+    <dimen name="spacing_normal">16dp</dimen>
+    <dimen name="spacing_medium">12dp</dimen>
+    <!--<dimen name="spacing_small">8dp</dimen>-->
+    <dimen name="spacing_tiny">4dp</dimen>
+    <dimen name="spacing_super_tiny">3dp</dimen>
+    <dimen name="margin_large">40dp</dimen>
+    <dimen name="match_constraint_dimension">0dp</dimen>
+
+    <dimen name="border_size_small">1dp</dimen>
+
+    <dimen name="radius_size_small">1dp</dimen>
+    <dimen name="radius_size_medium">4dp</dimen>
+    <dimen name="radius_size_large">6dp</dimen>
+    <dimen name="radius_size_xlarge">25dp</dimen>
+
+    <dimen name="elevation_small">4dp</dimen>
+    <dimen name="elevation_medium">5dp</dimen>
+
+    <dimen name="toolbar_min_height">72dp</dimen>
+
+    <dimen name="main_elevation_button_pressed">2dp</dimen>
+    <dimen name="main_elevation_button_normal">10dp</dimen>
+    <dimen name="main_locations_icon_side">30dp</dimen>
+    <dimen name="main_preparation_button_side">40dp</dimen>
+    <dimen name="main_locations_layout_elevation">4dp</dimen>
+    <dimen name="main_autocomplete_input_height">40dp</dimen>
+    <dimen name="main_timer_header_height">25dp</dimen>
+    <dimen name="main_timer_header_spacing_top">27dp</dimen>
+    <dimen name="main_start_button_height">36dp</dimen>
+    <dimen name="main_start_button_width">125dp</dimen>
+    <dimen name="main_start_button_elevation">6dp</dimen>
+    <dimen name="main_layout_by_what_height">120dp</dimen>
+
+    <dimen name="countdown_by_what_height">38dp</dimen>
+    <dimen name="countdown_by_what_width">46dp</dimen>
+
+    <dimen name="safe_travels_button_height">36dp</dimen>
+
+    <dimen name="header_height">72dp</dimen>
+    <dimen name="header_elevation">5dp</dimen>
+    <dimen name="header_logo_width">220dp</dimen>
+    <dimen name="header_logo_height">40dp</dimen>
+
+    <dimen name="text_xxxlarge">48sp</dimen>
+    <dimen name="text_xxlarge">44sp</dimen>
+    <dimen name="text_xlarge">30sp</dimen>
+    <dimen name="text_xlarger">28sp</dimen>
+    <dimen name="text_larger">20sp</dimen>
+    <dimen name="text_large">19sp</dimen>
+    <!--<dimen name="text_size_normal">16sp</dimen>-->
+    <dimen name="text_medium">15sp</dimen>
+    <dimen name="text_small">12sp</dimen>
+    <dimen name="text_autosize_granularity">2sp</dimen>
 </resources>

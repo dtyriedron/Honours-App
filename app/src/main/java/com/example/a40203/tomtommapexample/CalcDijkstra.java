@@ -18,6 +18,8 @@ public class CalcDijkstra {
 
     private static int index = 0;
 
+    static double totalDist;
+
     private static final int NO_PARENT = -1;
     static ArrayList<Integer> routeList = new ArrayList<>();
 
@@ -27,13 +29,15 @@ public class CalcDijkstra {
     // algorithm for a graph represented
     // using adjacency matrix
     // representation
-    public static ArrayList<Integer> calculate(double[][] adjacencyMatrix,
+    public static void calculate(double[][] adjacencyMatrix,
                                       int startVertex) {
         int nVertices = adjacencyMatrix[0].length;
 
         // shortestDistances[i] will hold the
         // shortest distance from src to i
         double[] shortestDistances = new double[nVertices];
+
+        totalDist= 0.0;
 
         routeList.clear();
 
@@ -138,7 +142,6 @@ public class CalcDijkstra {
 
         Log.w("cheese", "without speed decrease");
         printSolution(startVertex, shortestDistances, parents);
-        return routeList;
 //        Log.w("cheese", " with speed decrease");
 //        printSolution(startVertex, speedFactor(shortestDistances), parents);
     }
@@ -185,7 +188,8 @@ public class CalcDijkstra {
                 printer += distances[vertexIndex] + "\t\t";
                 printPath(vertexIndex, parents);
                 if(vertexIndex == nVertices-1){
-                    printRoute(vertexIndex,parents);
+                    setRoute(vertexIndex,parents);
+                    setDistance(distances[vertexIndex]);
                 }
 
             }
@@ -213,55 +217,30 @@ public class CalcDijkstra {
 //        }
     }
 
-    private static void printRoute(int currentVertex,
+    public static ArrayList<Integer> getRoute(){
+        return routeList;
+    }
+
+    private static void setRoute(int currentVertex,
                                    int[] parents){
         if (currentVertex == NO_PARENT)
         {
             return;
         }
-        printRoute(parents[currentVertex], parents);
+        setRoute(parents[currentVertex], parents);
         routeList.add(currentVertex);
-
-
     }
 
     public static String getPrinter(){
         return printer;
     }
 
-    //apply different speed factors to the distances between points in the distances list
-    public static double[] speedFactor(double[] distances){
-        Random rand = new Random();
+    private static void setDistance(double distance){
+        totalDist = distance;
+    }
 
-        //the percentage of speed that the car is decreased by in various situations
-        double speedBumpDecrease = 0.5;
-        double trafficLightDecrease = 0.5;
-        double pedestrianDecrease = 0.9;
-
-        boolean speedBump;
-        boolean trafficLight;
-        boolean pedestrian;
-
-        for(int i=0; i<distances.length;++i){
-
-            //the chance of the car encountering each speed factor
-            speedBump = rand.nextDouble() <=0.05;
-            trafficLight = rand.nextDouble() <= 0.3;
-            pedestrian = rand.nextDouble() <= 0.1;
-
-            if(speedBump){
-                distances[i] = distances[i] * speedBumpDecrease;
-            }
-            if(trafficLight){
-                distances[i] = distances[i] * trafficLightDecrease;
-            }
-            if(pedestrian){
-                distances[i] = distances[i] * pedestrianDecrease;
-            }
-        }
-
-        return distances;
-
+    public static double getDistance(){
+        return totalDist;
     }
 
 }

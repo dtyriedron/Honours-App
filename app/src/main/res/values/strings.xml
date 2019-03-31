@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">tomtommapexample</string>
+    <string name="app_name">Dissertation</string>
     <string name ="geocode_no_results">No geocoder results. Choose different location and try again</string>
     <string name = "api_response_error">API response error: \'%1$s\'.</string>
     <string name="poi_name_key">poiName</string>
@@ -12,4 +12,10 @@
     <string name="cancel">cancel</string>
     <string name="ok">ok</string>
     <string name="loading">loading...</string>
+    <string name="toast_error_message_cannot_find_route">cannot find a route</string>
+    <string name="waiting_for_the_results">waiting for the results...</string>
+    <string name="location_permissions_denied">location permissions denied, check your permission settings</string>
+    <string name="toast_error_message_error_getting_location">Error getting your location. %1$s</string>
+    <string name="start">START</string>
+    <string name="main_current_position">your location</string>
 </resources>

@@ -6,68 +6,370 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <fragment
-        android:id="@+id/mapFragment"
-        android:name="com.tomtom.online.sdk.map.MapFragment"
-
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="@dimen/size_none"
-        app:layout_constraintBottom_toTopOf="@+id/layout_edittext"
+        android:layout_height="match_parent">
 
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-    <android.support.constraint.ConstraintLayout
-        android:id="@+id/layout_edittext"
-        android:layout_width="@dimen/size_none"
-        android:layout_height="@dimen/layout_height_xlarge"
-        android:background="@color/white_fully_opaque"
-        android:paddingBottom="@dimen/spacing_small"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/layout_main_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-        <EditText
-            android:id="@+id/edittext_main_poisearch"
-            android:layout_width="@dimen/size_none"
-            android:layout_height="@dimen/size_none"
-            android:layout_marginStart="@dimen/spacing_small"
+            <include
+                android:id="@+id/custom_toolbar"
+                layout="@layout/custom_toolbar" />
 
-            android:background="@android:color/transparent"
-            android:hint="@string/poisearch_hint"
-            android:imeOptions="actionSearch"
-            android:textSize="@dimen/text_size_normal"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btn_main_poisearch"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:inputType="text"
-            android:textColor="@color/black_fully_opaque"
-            android:textColorHint="@color/cardview_dark_background"/>
+            <android.support.constraint.ConstraintLayout
+                android:id="@+id/layout_main_locations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/background_elevation_main"
+                android:elevation="@dimen/main_locations_layout_elevation"
+                app:layout_constraintTop_toBottomOf="@+id/custom_toolbar">
 
-        <ImageButton
-            android:id="@+id/btn_main_poisearch"
-            android:layout_width="wrap_content"
-            android:layout_height="@dimen/size_none"
-            android:layout_marginEnd="@dimen/spacing_small"
-            android:layout_marginTop="@dimen/spacing_xtiny"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@android:drawable/ic_menu_search" />
-        <ImageButton
-            android:id="@+id/btn_traffic_list"
-            android:layout_width="wrap_content"
-            android:layout_height="@dimen/size_none"
-            android:layout_marginEnd="@dimen/spacing_small"
-            android:layout_marginTop="@dimen/spacing_xtiny"
-            android:adjustViewBounds="true"
-            android:background="@android:color/transparent"
-            app:layout_constraintEnd_toStartOf="@id/btn_main_poisearch"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@android:drawable/ic_menu_info_details" />
+                <android.support.constraint.ConstraintLayout
+                    android:id="@+id/layout_main_locations_departure"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/margin_large"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <ImageView
+                        android:id="@+id/imageview_main_departure_icon"
+                        android:layout_width="@dimen/main_locations_icon_side"
+                        android:layout_height="@dimen/main_locations_icon_side"
+                        android:layout_marginStart="@dimen/spacing_large"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_start_icon" />
+
+                    <AutoCompleteTextView
+                        android:id="@+id/atv_main_departure_location"
+                        android:fontFamily="@font/gotham_book"
+                        android:textSize="@dimen/text_large"
+                        android:textColor="@color/color_all_text"
+                        android:layout_width="@dimen/match_constraint_dimension"
+                        android:layout_height="@dimen/main_autocomplete_input_height"
+                        android:layout_marginEnd="@dimen/spacing_large"
+                        android:layout_marginStart="@dimen/spacing_large"
+                        android:background="@drawable/background_with_border_main"
+                        android:inputType="textPersonName"
+                        android:paddingStart="@dimen/spacing_medium"
+                        android:paddingEnd="@dimen/spacing_xxxlarge"
+                        android:imeOptions="actionSearch"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/imageview_main_departure_icon"
+                        app:layout_constraintTop_toBottomOf="parent" />
+
+                    <ImageButton
+                        android:id="@+id/button_departure_clear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@android:color/transparent"
+                        app:layout_constraintBottom_toBottomOf="@+id/atv_main_departure_location"
+                        app:layout_constraintEnd_toEndOf="@+id/atv_main_departure_location"
+                        app:layout_constraintTop_toTopOf="@+id/atv_main_departure_location"
+                        app:srcCompat="@drawable/ic_close" />
+
+                </android.support.constraint.ConstraintLayout>
+
+                <android.support.constraint.ConstraintLayout
+                    android:id="@+id/layout_main_locations_arrival"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin_large"
+                    android:layout_marginTop="@dimen/spacing_large"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/layout_main_locations_departure">
+
+                    <ImageView
+                        android:id="@+id/imageview_main_arrival_icon"
+                        android:layout_width="@dimen/main_locations_icon_side"
+                        android:layout_height="@dimen/main_locations_icon_side"
+                        android:layout_marginStart="@dimen/spacing_large"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_destination_icon" />
+
+                    <AutoCompleteTextView
+                        android:id="@+id/atv_main_destination_location"
+                        android:fontFamily="@font/gotham_book"
+                        android:textSize="@dimen/text_large"
+                        android:textColor="@color/color_all_text"
+                        android:layout_width="@dimen/match_constraint_dimension"
+                        android:layout_height="@dimen/main_autocomplete_input_height"
+                        android:layout_marginEnd="@dimen/spacing_large"
+                        android:layout_marginStart="@dimen/spacing_large"
+                        android:background="@drawable/background_with_border_main"
+                        android:inputType="textPersonName"
+                        android:paddingStart="@dimen/spacing_medium"
+                        android:paddingEnd="@dimen/spacing_xxxlarge"
+                        android:imeOptions="actionSearch"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/imageview_main_arrival_icon"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageButton
+                        android:id="@+id/button_destination_clear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@android:color/transparent"
+                        app:layout_constraintBottom_toBottomOf="@+id/atv_main_destination_location"
+                        app:layout_constraintEnd_toEndOf="@+id/atv_main_destination_location"
+                        app:layout_constraintTop_toTopOf="@+id/atv_main_destination_location"
+                        app:srcCompat="@drawable/ic_close" />
+
+                </android.support.constraint.ConstraintLayout>
+
+            </android.support.constraint.ConstraintLayout>
+
+            <!--<android.support.constraint.ConstraintLayout-->
+                <!--android:id="@+id/layout_main_settings"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:background="@drawable/background_grey_main"-->
+                <!--android:paddingBottom="@dimen/spacing_large"-->
+                <!--app:layout_constraintTop_toBottomOf="@id/layout_main_locations"-->
+                <!--app:layout_constraintStart_toStartOf="parent">-->
+
+                <!--<android.support.constraint.ConstraintLayout-->
+                    <!--android:id="@+id/layout_main_settings_arrive_at"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginStart="@dimen/spacing_large"-->
+                    <!--android:layout_marginTop="@dimen/spacing_xxlarge"-->
+                    <!--app:layout_constraintStart_toStartOf="parent"-->
+                    <!--app:layout_constraintTop_toTopOf="parent">-->
+
+                    <!--<TextView-->
+                        <!--android:id="@+id/text_view_main_arrive_at"-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:fontFamily="@font/gotham_bold"-->
+                        <!--android:text="@string/main_arrive_at"-->
+                        <!--android:textColor="@color/color_all_text"-->
+                        <!--android:textSize="@dimen/text_medium"-->
+                        <!--app:layout_constraintStart_toStartOf="parent"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                    <!--<TextView-->
+                        <!--android:id="@+id/text_view_main_arrive_at_hour"-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:layout_marginTop="21dp"-->
+                        <!--android:fontFamily="@font/gotham_book"-->
+                        <!--android:text="@string/time_default_value"-->
+                        <!--android:textColor="@color/color_all_text"-->
+                        <!--android:textSize="@dimen/text_xxlarge"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                    <!--<TextView-->
+                        <!--android:id="@+id/text_view_main_arrive_at_am_pm"-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:layout_marginBottom="@dimen/spacing_tiny"-->
+                        <!--android:layout_marginStart="@dimen/spacing_small"-->
+                        <!--android:fontFamily="@font/gotham_book"-->
+                        <!--android:text="@string/main_am_pm_default_value"-->
+                        <!--android:textColor="@color/color_all_text"-->
+                        <!--android:textSize="@dimen/text_larger"-->
+                        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                        <!--app:layout_constraintStart_toEndOf="@+id/text_view_main_arrive_at_hour" />-->
+
+                <!--</android.support.constraint.ConstraintLayout>-->
+
+                <!--<android.support.constraint.ConstraintLayout-->
+                    <!--android:id="@+id/layout_main_settings_preparation_time"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginEnd="@dimen/spacing_tiny"-->
+                    <!--android:layout_marginStart="@dimen/spacing_small"-->
+                    <!--android:layout_marginTop="@dimen/spacing_xxlarge"-->
+                    <!--app:layout_constraintEnd_toEndOf="parent"-->
+                    <!--app:layout_constraintStart_toEndOf="@+id/layout_main_settings_arrive_at"-->
+                    <!--app:layout_constraintTop_toTopOf="parent">-->
+
+                    <!--<TextView-->
+                        <!--android:id="@+id/text_view_main_preparation_time"-->
+                        <!--android:layout_width="wrap_content"-->
+                        <!--android:layout_height="wrap_content"-->
+                        <!--android:layout_marginStart="@dimen/spacing_small"-->
+                        <!--android:fontFamily="@font/gotham_bold"-->
+                        <!--android:text="@string/main_preparation"-->
+                        <!--android:textAlignment="center"-->
+                        <!--android:textColor="@color/color_all_text"-->
+                        <!--android:textSize="@dimen/text_medium"-->
+                        <!--app:layout_constraintStart_toStartOf="parent"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                    <!--<Button-->
+                        <!--android:id="@+id/button_main_preparation_first"-->
+                        <!--android:layout_width="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_height="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                        <!--android:layout_marginStart="@dimen/spacing_small"-->
+                        <!--android:layout_marginTop="@dimen/spacing_xlarge"-->
+                        <!--android:background="@drawable/background_preparation_button_main"-->
+                        <!--android:stateListAnimator="@null"-->
+                        <!--android:text="@string/preparation_0"-->
+                        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                        <!--app:layout_constraintStart_toStartOf="parent"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                    <!--<Button-->
+                        <!--android:id="@+id/button_main_preparation_second"-->
+                        <!--android:layout_width="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_height="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                        <!--android:layout_marginStart="@dimen/spacing_medium"-->
+                        <!--android:layout_marginTop="@dimen/spacing_xlarge"-->
+                        <!--android:background="@drawable/background_preparation_button_main"-->
+                        <!--android:stateListAnimator="@null"-->
+                        <!--android:text="@string/preparation_5"-->
+                        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                        <!--app:layout_constraintStart_toEndOf="@+id/button_main_preparation_first"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                    <!--<Button-->
+                        <!--android:id="@+id/button_main_preparation_third"-->
+                        <!--android:layout_width="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_height="@dimen/main_preparation_button_side"-->
+                        <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                        <!--android:layout_marginEnd="@dimen/spacing_small"-->
+                        <!--android:layout_marginStart="@dimen/spacing_medium"-->
+                        <!--android:layout_marginTop="@dimen/spacing_xlarge"-->
+                        <!--android:background="@drawable/background_preparation_button_main"-->
+                        <!--android:stateListAnimator="@null"-->
+                        <!--android:text="@string/preparation_10"-->
+                        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                        <!--app:layout_constraintEnd_toEndOf="parent"-->
+                        <!--app:layout_constraintStart_toEndOf="@+id/button_main_preparation_second"-->
+                        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+                <!--</android.support.constraint.ConstraintLayout>-->
+
+            <!--</android.support.constraint.ConstraintLayout>-->
+
+            <!--<android.support.constraint.ConstraintLayout-->
+                <!--android:id="@+id/layout_main_by_what"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="@dimen/main_layout_by_what_height"-->
+                <!--android:background="@android:color/white"-->
+                <!--app:layout_constraintTop_toBottomOf="@+id/layout_main_settings">-->
+
+                <!--<ImageButton-->
+                    <!--android:id="@+id/button_main_car"-->
+                    <!--android:layout_width="@dimen/match_constraint_dimension"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_small"-->
+                    <!--android:background="@android:color/white"-->
+                    <!--app:layout_constraintBottom_toTopOf="@+id/text_view_main_car"-->
+                    <!--app:layout_constraintEnd_toStartOf="@+id/button_main_taxi"-->
+                    <!--app:layout_constraintHorizontal_bias="0.5"-->
+                    <!--app:layout_constraintStart_toStartOf="parent"-->
+                    <!--app:srcCompat="@drawable/button_main_travel_mode_car" />-->
+
+                <!--<ImageButton-->
+                    <!--android:id="@+id/button_main_taxi"-->
+                    <!--android:layout_width="@dimen/match_constraint_dimension"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_small"-->
+                    <!--android:background="@android:color/white"-->
+                    <!--app:layout_constraintBottom_toTopOf="@+id/text_view_main_cab"-->
+                    <!--app:layout_constraintEnd_toStartOf="@+id/button_main_on_foot"-->
+                    <!--app:layout_constraintHorizontal_bias="0.5"-->
+                    <!--app:layout_constraintStart_toEndOf="@+id/button_main_car"-->
+                    <!--app:srcCompat="@drawable/button_main_travel_mode_cab" />-->
+
+                <!--<ImageButton-->
+                    <!--android:id="@+id/button_main_on_foot"-->
+                    <!--android:layout_width="@dimen/match_constraint_dimension"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_small"-->
+                    <!--android:background="@android:color/white"-->
+                    <!--app:layout_constraintBottom_toTopOf="@+id/text_view_main_on_foot"-->
+                    <!--app:layout_constraintEnd_toEndOf="parent"-->
+                    <!--app:layout_constraintHorizontal_bias="0.5"-->
+                    <!--app:layout_constraintStart_toEndOf="@+id/button_main_taxi"-->
+                    <!--app:srcCompat="@drawable/button_main_travel_mode_by_foot" />-->
+
+                <!--<TextView-->
+                    <!--android:id="@+id/text_view_main_car"-->
+                    <!--style="@style/style_main_travel_mode"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                    <!--android:text="@string/main_car"-->
+                    <!--android:textAlignment="center"-->
+                    <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                    <!--app:layout_constraintEnd_toEndOf="@+id/button_main_car"-->
+                    <!--app:layout_constraintStart_toStartOf="@+id/button_main_car" />-->
+
+                <!--<TextView-->
+                    <!--android:id="@+id/text_view_main_cab"-->
+                    <!--style="@style/style_main_travel_mode"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                    <!--android:text="@string/main_taxi"-->
+                    <!--android:textAlignment="center"-->
+                    <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                    <!--app:layout_constraintEnd_toEndOf="@+id/button_main_taxi"-->
+                    <!--app:layout_constraintStart_toStartOf="@+id/button_main_taxi" />-->
+
+                <!--<TextView-->
+                    <!--android:id="@+id/text_view_main_on_foot"-->
+                    <!--style="@style/style_main_travel_mode"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_marginBottom="@dimen/spacing_normal"-->
+                    <!--android:text="@string/main_on_foot"-->
+                    <!--android:textAlignment="center"-->
+                    <!--app:layout_constraintBottom_toBottomOf="parent"-->
+                    <!--app:layout_constraintEnd_toEndOf="@+id/button_main_on_foot"-->
+                    <!--app:layout_constraintStart_toStartOf="@+id/button_main_on_foot" />-->
+
+            <!--</android.support.constraint.ConstraintLayout>-->
 
 
-    </android.support.constraint.ConstraintLayout>
+            <android.support.constraint.ConstraintLayout
+                android:id="@+id/layout_main_start"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/color_activity_grey_background"
+                app:layout_constraintTop_toBottomOf="@+id/layout_main_locations"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <Button
+                    android:id="@+id/button_main_start"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/main_start_button_height"
+                    android:layout_marginBottom="@dimen/margin_large"
+                    android:layout_marginEnd="@dimen/spacing_large"
+                    android:layout_marginStart="@dimen/spacing_large"
+                    android:layout_marginTop="@dimen/margin_large"
+                    android:background="@drawable/button_main_green"
+                    android:elevation="@dimen/main_start_button_elevation"
+                    android:fontFamily="@font/gotham_bold"
+                    android:stateListAnimator="@null"
+                    android:text="@string/start"
+                    android:textColor="@color/white_fully_opaque"
+                    android:textSize="@dimen/text_medium"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </android.support.constraint.ConstraintLayout>
+
+        </android.support.constraint.ConstraintLayout>
+
+    </ScrollView>
 </android.support.constraint.ConstraintLayout>
