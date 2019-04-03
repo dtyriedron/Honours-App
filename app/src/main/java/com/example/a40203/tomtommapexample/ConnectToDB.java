@@ -1,6 +1,6 @@
 package com.example.a40203.tomtommapexample;
 
-import android.os.AsyncTask;
+import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,25 +22,13 @@ public class ConnectToDB {
 
     OkHttpClient client = new OkHttpClient();
 
-//    String post(String url, String json) throws IOException {
-//        RequestBody body = RequestBody.create(JSON, json);
-//        Request request = new Request.Builder()
-//                .url(url)
-//                .post(body)
-//                .build();
-//        try (Response response = client.newCall(request).execute()) {
-//            return response.body().string();
-//        }
-//    }
 
-    JSONObject roadJSON(String location, String speedbumps, String trafficlights, String time, String speedlimit) {
+    JSONObject roadJSON(String streetname, String point) {
         JSONObject postBody = new JSONObject();
         try {
-            postBody.put("location", location);
-            postBody.put("speedbumps", speedbumps);
-            postBody.put("trafficlights", trafficlights);
-            postBody.put("time", time);
-            postBody.put("speedlimit", speedlimit);
+            postBody.put("action", "searchDB");
+            postBody.put("streetname", streetname);
+            postBody.put("point", point);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -48,16 +36,10 @@ public class ConnectToDB {
         return postBody;
     }
 
-//    public static void main(String[] args) throws IOException {
-//        ConnectToDB connectToDB = new ConnectToDB();
-//        JSONObject json = connectToDB.roadJSON("edinburgh", "2", "3", "45", "40");
-//        String response = connectToDB.sendRequest("http://192.168.0.33/text.php", json);
-//        System.out.println(response);
-//    }
-
 
     public void sendRequest(String url, JSONObject jsonObject){
 
+        Log.w("server", "json: " + jsonObject.toString());
         Request request = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(JSON, jsonObject.toString()))
@@ -75,8 +57,8 @@ public class ConnectToDB {
                     throw new IOException("unexpected server error " +response);
                 }
 
-                final String reposnseString = response.body().string();
-//                    MainActivity.getResponse(reposnseString);
+                String reposnseString = response.body().string();
+                    MapActivity.getResponse(reposnseString);
             }
         });
     }

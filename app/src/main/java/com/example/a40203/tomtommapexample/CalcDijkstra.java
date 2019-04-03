@@ -5,11 +5,6 @@ import android.util.Log;
 import com.google.common.util.concurrent.AtomicDouble;
 
 import java.util.ArrayList;
-import java.util.Random;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class CalcDijkstra {
 
@@ -212,9 +207,6 @@ public class CalcDijkstra {
         }
         printPath(parents[currentVertex], parents);
         printer += currentVertex + " ";
-//        if(currentVertex==parents.length-1){
-//            Log.w("cheese", "currentVertex: " +currentVertex);
-//        }
     }
 
     public static ArrayList<Integer> getRoute(){
