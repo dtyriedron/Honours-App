@@ -2,16 +2,12 @@ package com.example.a40203.tomtommapexample;
 
 import android.util.Log;
 
-import com.google.common.util.concurrent.AtomicDouble;
 
 import java.util.ArrayList;
 
 public class CalcDijkstra {
 
 
-    public static AtomicDouble atomicDouble = new AtomicDouble(Integer.MAX_VALUE);
-
-    private static int index = 0;
 
     static double totalDist;
 
@@ -68,34 +64,6 @@ public class CalcDijkstra {
         for (int i = 1; i < nVertices; i++) {
 
 
-
-//            atomicDouble.set(Integer.MAX_VALUE);
-//
-//            int numThreads = Runtime.getRuntime().availableProcessors();
-//
-//            Vector<Thread> thread_pool = new Vector<>();
-//
-//            for(int j=0; j< numThreads; ++j){
-//                int finalJ = j;
-//                thread_pool.add(j, new Thread(){
-//                    public void run(){
-//                        minDistIndex(nVertices, added, shortestDistances, adjacencyMatrix, parents, finalJ);
-//                    }
-//                });
-//            }
-//
-//            for(Thread t: thread_pool){
-//                try {
-//                    t.join();
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//            //set the nearestVertex to the current shortestDistance index and set the shortestDistance to shortestDistance found by any of the threads
-//            int nearestVertex = index;
-//            double shortestDistance = atomicDouble.get();
-
             int nearestVertex = 0;
             double shortestDistance = Integer.MAX_VALUE;
 
@@ -137,28 +105,7 @@ public class CalcDijkstra {
 
         Log.w("cheese", "without speed decrease");
         printSolution(startVertex, shortestDistances, parents);
-//        Log.w("cheese", " with speed decrease");
-//        printSolution(startVertex, speedFactor(shortestDistances), parents);
     }
-
-//    private static void minDistIndex(int nVertices, Boolean[] added, double[] shortestDistances, double[][] adjacencyMatrix, int[] parents, int threadNum) {
-//
-//        int numThreads = Runtime.getRuntime().availableProcessors()-1;
-//        int firstInt= nVertices/ (numThreads * (threadNum-1));
-//        int secondInt = nVertices/ (numThreads * threadNum);
-//
-//        // Pick the minimum distance vertex
-//        // from the set of vertices not yet
-//        // processed within the current thread's section. nearestVertex is
-//        // always equal to startNode in
-//        // first iteration.
-//
-//
-//        if(shortestDistance<atomicDouble.get()){
-//            atomicDouble.set(shortestDistance);
-//            index = nearestVertex;
-//        }
-//    }
 
     // A utility function to print
     // the constructed distances

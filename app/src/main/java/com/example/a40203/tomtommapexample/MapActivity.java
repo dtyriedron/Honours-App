@@ -5,26 +5,20 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.Toast;
 
-import com.google.common.base.Optional;
 import com.tomtom.online.sdk.common.location.LatLng;
 import com.tomtom.online.sdk.map.Icon;
 import com.tomtom.online.sdk.map.MapFragment;
 import com.tomtom.online.sdk.map.Marker;
 import com.tomtom.online.sdk.map.MarkerBuilder;
 import com.tomtom.online.sdk.map.OnMapReadyCallback;
-import com.tomtom.online.sdk.map.Route;
 import com.tomtom.online.sdk.map.RouteBuilder;
 import com.tomtom.online.sdk.map.TomtomMap;
 import com.tomtom.online.sdk.map.TomtomMapCallback;
@@ -34,7 +28,6 @@ import com.tomtom.online.sdk.routing.data.FullRoute;
 import com.tomtom.online.sdk.routing.data.RouteQuery;
 import com.tomtom.online.sdk.routing.data.RouteQueryBuilder;
 import com.tomtom.online.sdk.routing.data.RouteResponse;
-import com.tomtom.online.sdk.routing.data.TravelMode;
 import com.tomtom.online.sdk.search.OnlineSearchApi;
 import com.tomtom.online.sdk.search.SearchApi;
 import com.tomtom.online.sdk.search.data.reversegeocoder.ReverseGeocoderSearchQueryBuilder;
@@ -64,12 +57,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private AlertDialog dialogInfo;
     private AlertDialog dialogInProgress;
     private TomtomMap tomtomMap;
-    private TravelMode travelMode;
-    private CountDownTimer countDownTimer;
     private Handler timerHandler = new Handler();
     private RoutingApi routingApi;
 
-    //mainact stuff
     private ArrayList<LatLng> points;
     private double[][] dijkstraPoints;
     private LatLng departurePosition;
@@ -77,12 +67,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Icon departureIcon;
     private Icon destinationIcon;
     private SearchApi searchApi;
-    private ImageButton btnSearch;
-    private EditText editTextPois;
-    private ArrayList<String> streetnames;
     private double routeDistance;
     private ArrayList<Integer> newRoute;
-    private Route route;
     private List<FullRoute> routes;
 
     private Runnable requestRouteRunnable = new Runnable() {
@@ -114,7 +100,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_map);
 
         initTomTomServices();
-//        initToolbarSettings();
         Bundle settings = getIntent().getBundleExtra(BUNDLE_SETTINGS);
         initActivitySettings(settings);
     }
@@ -139,7 +124,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         timerHandler.removeCallbacks(requestRouteRunnable);
         timerHandler.removeCallbacks(requestDijkstraRunnable);
         timerHandler.removeCallbacks(requestFindEdgesRunnable);
-        countDownTimer.cancel();
     }
 
 
@@ -164,7 +148,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tomtomMap.clear();
         departurePosition = null;
         destinationPosition = null;
-        route = null;
         points.clear();
         dijkstraPoints = null;
     }
@@ -209,15 +192,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         if(!isDeparturePositionSet()){
                             setAndDisplayDeparturePosition(geocodedPosition);
                         } else{
-//                            if (!isInPauseMode) {
-                                streetnames = new ArrayList<>();
-    //                            pointPos = new ArrayList<>();
-    //                            map = new HashMap<>();
                                 destinationPosition = geocodedPosition;
                                 tomtomMap.removeMarkers();
                                 requestRoute(departurePosition, destinationPosition);
-//                            }
-                        }
+                            }
                     }
 
                     private void setAndDisplayDeparturePosition(LatLng geocodedPosition){
@@ -225,38 +203,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         createMarkerIfNotPresent(departurePosition, departureIcon);
                     }
                 });
-    }
-
-    @NonNull
-    private View.OnClickListener getSearchButtonListener(){
-        return new View.OnClickListener(){
-
-            @Override
-            public void onClick(View v){
-                handleSearchClick(v);
-            }
-
-            private void handleSearchClick(View v){
-                if(isRouteSet()){
-                    Optional<CharSequence> description = Optional.fromNullable(v.getContentDescription());
-                    if(description.isPresent()){
-                        editTextPois.setText(description.get());
-                        v.setSelected(true);
-                    }
-                    String textToSearch = editTextPois.getText().toString();
-                    //LatLng lngToSearch = new LatLng(Double.valueOf(textToSearch.split(",")[0]), Double.valueOf(textToSearch.split(",")[1]));
-                    if(!textToSearch.isEmpty()){
-                        tomtomMap.removeMarkers();
-                    }
-                }
-            }
-
-            private boolean isRouteSet(){
-                return route != null;
-            }
-
-
-        };
     }
 
     private void createMarkerIfNotPresent(LatLng position, Icon icon){
@@ -390,8 +336,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
                         private void processResponse(ReverseGeocoderSearchResponse response){
                             if(response.hasResults()) {
-                                //set the streetname
-                                //streetName = response.getAddresses().get(0).getAddress().getStreetName();
                                 streetnames.put(response.getAddresses().get(0).getAddress().getStreetName(), points.get(finalI));
                                 Log.w("server", "streetnames size: "+streetnames.size());
 
@@ -438,8 +382,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void initActivitySettings(Bundle settings) {
         departureIcon = Icon.Factory.fromResources(MapActivity.this, R.drawable.ic_map_route_departure);
         destinationIcon = Icon.Factory.fromResources(MapActivity.this, R.drawable.ic_map_route_destination);
-        btnSearch = findViewById(R.id.btn_main_poisearch);
-        editTextPois = findViewById(R.id.edittext_main_poisearch);
 
         initBundleSettings(settings);
 

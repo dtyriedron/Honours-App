@@ -61,19 +61,29 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
     private static final int SEARCH_FUZZY_LVL_MIN = 2;
     private static final int PERMISSION_REQUEST_LOCATION = 0;
 
+    //TomTom's search api used in the text boxes to reverse geocode and search for places
     private SearchApi searchApi;
+    //current location
     private LocationSource locationSource;
+    //text views for view fuzzy search suggestions
     private AutoCompleteTextView atvDepartureLocation;
     private AutoCompleteTextView atvDestinationLocation;
+    //used to cause less inconvenience when typing a search (delay for suggestions)
     private Handler searchTimerHandler = new Handler();
+    //run search on new thread
     private Runnable searchRunnable;
+    //arrylist to store current search suggestions
     private ArrayAdapter<String> searchAdapter;
     private List<String> searchAutocompleteList;
+    //store the results of the search in a map
     private Map<String, LatLng> searchResultsMap;
+    //stores current position
     private LatLng latLngCurrentPosition;
+    //points stored for departure and destination
     private LatLng latLngDeparture;
     private LatLng latLngDestination;
 
+    //initialize at start of activty
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         initStartSection();
     }
 
+    //when the activity returned from a switch
     @Override
     protected void onResume() {
         super.onResume();
@@ -93,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         }
     }
 
+    //update location
     @Override
     public void onLocationChanged(Location location) {
         if (latLngCurrentPosition == null) {
@@ -101,10 +113,12 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         }
     }
 
+    //initialize search api
     private void initTomTomServices() {
         searchApi = OnlineSearchApi.create(this);
     }
 
+    //pre set route locations to act as a hint
     private void initSearchFieldsWithDefaultValues() {
         atvDepartureLocation = findViewById(R.id.atv_main_departure_location);
         atvDestinationLocation = findViewById(R.id.atv_main_destination_location);
@@ -113,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements LocationUpdateLis
         initDestinationWithDefaultValue();
     }
 
+    //
     private void initLocationSource() {
         PermissionChecker permissionChecker = AndroidPermissionChecker.createLocationChecker(this);
         if(permissionChecker.ifNotAllPermissionGranted()) {

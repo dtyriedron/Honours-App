@@ -24,7 +24,6 @@ public class FindEdgesForDijkstra {
         //list of points that can be adapted to our needs
         ArrayList<LatLng> pointList = new ArrayList<>();
 
-
         for(FullRoute r: routes){
             for(LatLng c: r.getCoordinates()){
                 pointList.add(c);
